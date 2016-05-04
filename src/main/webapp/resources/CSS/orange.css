@@ -1,12 +1,17 @@
 body
-{ background: #FFF url(back.png) repeat;
+{
+  background: #FFF url(/resources/Images/back.png) repeat;
   color: #D5D2D6;
 }
 
-blockquote{border-color: #FF9C27;}
+blockquote
+{
+  border-color: #FF9C27;
+}
 
 #main
-{ background: #414141 url(main.png) repeat-y;
+{
+  background: #414141 url(/resources/Images/main.png) repeat-y;
   color: #D5D2D6;
 }
 
@@ -17,7 +22,7 @@ blockquote{border-color: #FF9C27;}
 }
 
 #logo
-{ background: #FFF url(logo.jpg) no-repeat;
+{ background: #FFF url(/resources/Images/logo.jpg) no-repeat;
   color: #D5D2D6;
   border-color: #FF9C27;
 }

@@ -1,138 +1,179 @@
 /* global */
-html{height: 100%;}
+html
+{
+  height: 100%;
+}
 
 body
-{ font-family: verdana, arial, sans-serif;
+{
+  font-family: verdana, arial, sans-serif;
   padding: 0px;
   margin: 0px;
   font-size: .68em;
 }
 
 p
-{ margin: 0px;
+{
+  margin: 0px;
   padding: 0px 0px 16px 0px;
   line-height: 1.7em;
 }
 
 h1
-{ font-family: arial, sans-serif;
+{
+  font-family: arial, sans-serif;
   font-size: 108%;
   letter-spacing: .1em;
 }
 
 h2
-{ margin: 0px;
+{
+  margin: 0px;
   padding: 0px 0px 4px 0px;
   font-size: 100%;
 }
 
-img{border: 0px;}
+img
+{
+  border: 0px;
+}
 
-a{outline: none;}
+a
+{
+  outline: none;
+}
 
 /* image positioning - left, right and center */
 .left
-{ float: left; 
+{
+  float: left; 
   padding: 0px 8px 0px 0px;
 }
 
 .right
-{ float: right; 
+{
+  float: right; 
   padding: 0px 0px 0px 8px;
 }
 
 .center
-{ display: block;
+{
+  display: block;
   text-align: center;
   margin: 0 auto;
 }
 
 /* block quote */
 blockquote
-{ margin: 20px 0px 20px 0px; 
+{
+  margin: 20px 0px 20px 0px; 
   padding: 10px 20px 0px 20px;
   border-left: 8px solid;
 }
 
 /* unordered list */
 ul
-{ margin: 8px 0px 0px 16px;
+{
+  margin: 8px 0px 0px 16px;
   padding: 0px;
 }
 
 ul li
-{ list-style-type: square;
+{
+  list-style-type: square;
   margin: 0px 0px 11px 0px; 
   padding: 0px;
 }
 
 /* ordered list */
 ol
-{ margin: 8px 0px 0px 24px;
+{
+  margin: 8px 0px 0px 24px;
   padding: 0px;
 }
 
 ol li
-{ margin: 0px 0px 11px 0px; 
+{
+  margin: 0px 0px 11px 0px; 
   padding: 0px;
 }
 
 /* margin lefts / margin rights - to centre content */
 #main, #links, #footer, #logo, #menu, #content
-{ margin-left: auto; 
+{
+  margin-left: auto; 
   margin-right: auto;
 }
 
 /* main container */
-#main{width: 780px;}
+#main
+{
+  width: 780px;
+}
 
 /* links above the logo / footer */
 #links, #footer
-{ width: 726px;
+{
+  width: 726px;
   height: 20px;
   font-size: 88%;
   text-transform: uppercase;
   padding: 8px 21px 0px 19px;
 }
 
-#links{text-align: right;}
+#links
+{
+  text-align: right;
+}
 
 #footer
-{ text-align: center; 
+{
+  text-align: center; 
   border-top: 2px solid;
 }
 
-#links a, #footer a{text-decoration: none;}
+#links a, #footer a
+{
+  text-decoration: none;
+}
 
-#links a:hover, #footer a:hover{text-decoration: underline;}
+#links a:hover, #footer a:hover
+{
+  text-decoration: underline;
+}
 
 /* logo */
 #logo
-{ width: 766px;
+{
+  width: 766px;
   height: 125px;
   border-top: 2px solid;
   border-bottom: 5px solid;
 }
 
 #logo h1, #logo h2
-{ margin: 0px;
+{
+  margin: 0px;
   letter-spacing: .2em;
 }
 
 #logo h1
-{ padding: 28px 0px 0px 139px;
+{
+  padding: 28px 0px 0px 139px;
   font-size: 160%;
 }
 
 #logo h2
-{ font-family: arial, sans-serif;
+{
+  font-family: arial, sans-serif;
   padding: 5px 0px 0px 139px;
   font-size: 108%;
 }
 
 /* navigation menu */
 #menu
-{ height: 30px;
+{
+  height: 30px;
   width: 766px;
   margin-top: -30px;
   position: relative;
