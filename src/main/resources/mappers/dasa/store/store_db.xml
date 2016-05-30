@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="store">
+
+    <select id="chkSameCode_CstmrGroupCode" parameterType="string" resultType="com.dasa.store.vo.CstmrGroupVo">
+        SELECT IFNULL(cg_code,'') as cg_code,
+               IFNULL(cg_nm,'') as cg_nm
+        FROM   tb_cstmr_group
+        WHERE  cg_code=#{cg_code}
+    </select>
+
+    <select id="selectCstmrGroupList" resultType="com.dasa.store.vo.CstmrGroupVo" >
+        select cg_code
+                ,cg_nm
+                ,cg_memo
+                , if(use_at='Y', '사용', '미사용') AS use_at
+                ,delete_at
+                ,regist_man
+                ,regist_de
+                ,updt_man
+                ,updt_de
+                ,(select IFNULL(COUNT(*),0) from tb_manage_entrps B where  B.cg_code =A.cg_code) as me_cnt
+        from  tb_cstmr_group A
+        order by cg_code
+    </select>
+
+    <select id="selectCstmrGroupRow" parameterType="string" resultType="com.dasa.store.vo.CstmrGroupVo" >
+        select cg_code
+                ,cg_nm
+                ,cg_memo
+                ,use_at
+                ,delete_at
+                ,regist_man
+                ,regist_de
+                ,updt_man
+                ,updt_de
+        from  tb_cstmr_group
+        where cg_code = #{cg_code}
+    </select>
+
+    <update id="updateCstmrGroup" parameterType="hashmap">
+        UPDATE tb_cstmr_group
+        SET
+             cg_nm      =  #{cg_nm}
+            ,cg_memo    =  #{cg_memo}
+            ,use_at     =  #{use_at}
+            ,updt_man   =  #{updt_man}
+            ,updt_de    =  NOW()
+        WHERE cg_code=#{cg_code}
+    </update>
+
+    <update id="deleteCstmrGroup" parameterType="hashmap">
+        UPDATE tb_cstmr_group
+        SET
+            DELETE_AT    = 'Y'
+            ,UPDT_MAN    = #{updt_man}
+            ,UPDT_DE     = NOW()
+        WHERE cg_code=#{cg_code}
+    </update>
+
+    <insert id="insertCstmrGroup" parameterType="hashmap">
+        <selectKey resultType="String" keyProperty="cg_code_auto"  order="BEFORE">
+                select IFNULL(MAX(CAST(cg_code AS SIGNED)),1)+1 from tb_cstmr_group
+        </selectKey>
+
+        INSERT INTO
+                tb_cstmr_group
+            (
+                cg_code
+                ,cg_nm
+                ,cg_memo
+                ,use_at
+                ,delete_at
+                ,regist_man
+                ,regist_de
+                ,updt_man
+                ,updt_de
+            )
+            VALUES
+            (
+                <choose>
+                    <when test="autoYn eq 'Y'.toString()">
+                        #{cg_code_auto}
+                    </when>
+                    <otherwise>
+                        #{cg_code}
+                    </otherwise>
+                </choose>
+                ,#{cg_nm}
+                ,#{cg_memo}
+                ,#{use_at}
+                ,#{delete_at}
+                ,#{regist_man}
+                ,NOW()
+                ,#{regist_man}
+                ,NOW()
+            )
+
+    </insert>
+
+
+    <select id="chkSameCode_ManageEntrpsCode" parameterType="hashmap" resultType="com.dasa.store.vo.ManageEntrpsVo">
+        SELECT IFNULL(me_code,'') as me_code,
+                IFNULL(me_nm, '') as me_nm
+        FROM TB_MANAGE_ENTRPS
+        WHERE cg_code=#{cg_code} 
+         and me_code=#{me_code}
+        order by me_nm
+    </select>
+
+    <select id="selectManageEntrpsList" resultType="com.dasa.store.vo.ManageEntrpsVo" parameterType="hashmap"  >
+	   	SELECT * 
+    	FROM (select me_code
+	                ,cg_code
+	                ,me_nm
+	                ,me_memo
+	                ,if(use_at='Y', '사용', '미사용') AS use_at
+	                ,delete_at
+	                ,regist_man
+	                ,regist_de
+	                ,updt_man
+	                ,updt_de
+	                , (select IFNULL(count(*),0) from tb_str_manage b
+	                    where a.me_code=b.me_code
+	                    and a.cg_code=b.cg_code
+	                    and b.om_code=#{om_code}) as sm_cnt
+	        from  tb_manage_entrps a
+	        where cg_code = #{cg_code}
+        ) AA
+    	ORDER BY IF(sm_cnt, 0, '999999'), me_nm
+    </select>
+
+    <select id="selectManageEntrpsRow" resultType="com.dasa.store.vo.ManageEntrpsVo" parameterType="string" >
+        select me_code
+                ,cg_code
+                ,me_nm
+                ,me_memo
+                ,use_at
+                ,delete_at
+                ,regist_man
+                ,regist_de
+                ,updt_man
+                ,updt_de
+        from  tb_manage_entrps
+        where cg_code=#{cg_code}
+          and me_code=#{me_code}
+    </select>
+
+    <update id="updateManageEntrps" parameterType="hashmap">
+        UPDATE tb_manage_entrps
+        SET
+            me_nm      =  #{me_nm}
+            ,me_memo    =  #{me_memo}
+            ,use_at     =  #{use_at}
+            ,updt_man   =  #{updt_man}
+            ,updt_de    =  NOW()
+
+        WHERE cg_code=#{cg_code}
+          and me_code=#{me_code}
+    </update>
+
+    <update id="deleteManageEntrps" parameterType="hashmap">
+        UPDATE tb_manage_entrps
+        SET
+            DELETE_AT    = 'Y'
+            ,UPDT_MAN    = #{updt_man}
+            ,UPDT_DE     = NOW()
+        WHERE cg_code=#{cg_code}
+          and me_code=#{me_code}
+    </update>
+
+    <insert id="insertManageEntrps" parameterType="hashmap">
+        <selectKey resultType="String" keyProperty="me_code_auto" order="BEFORE" >
+                select  RIGHT(CONCAT('0000', IFNULL(MAX(CAST(me_code AS SIGNED)),1)+1), 5) from tb_manage_entrps
+        </selectKey>
+        insert into
+            tb_manage_entrps
+        (
+            me_code
+            ,cg_code
+            ,me_nm
+            ,me_memo
+            ,use_at
+            ,delete_at
+            ,regist_man
+            ,regist_de
+            ,updt_man
+            ,updt_de
+        )
+        values
+        (
+            <choose>
+                <when test="autoYn eq 'Y'.toString()">
+                    #{me_code_auto}
+                </when>
+                <otherwise>
+                    #{me_code}
+                </otherwise>
+            </choose>
+            ,#{cg_code}
+            ,#{me_nm}
+            ,#{me_memo}
+            ,#{use_at}
+            ,#{delete_at}
+            ,#{regist_man}
+            ,NOW()
+            ,#{regist_man}
+            ,NOW()
+        )
+    </insert>
+
+    <select id="selectStoreList" resultType="com.dasa.store.vo.StoreVo" parameterType="hashmap">
+        select sm_code
+        	  ,sm_sap_code
+              ,me_code
+              ,cg_code
+              ,om_code
+              ,sm_nm
+              ,sm_odr
+              ,sm_bizrno
+              ,sm_cmpnm
+              ,sm_area
+              ,sm_zipcd
+              ,sm_adres
+              ,sm_dtadres
+              ,sm_etcadres
+              ,sm_la
+              ,sm_lo
+              ,sm_rprsntv_nm
+              ,sm_site_se
+              ,sm_site
+              ,sm_tlphon
+              ,sm_fxnum
+              ,sm_memo
+              ,sm_oper_at
+              ,IF(sm_oper_at = 'Y', '운영', '폐쇄') as SM_OPER_NM
+              ,sm_cvscafe_at
+              ,delete_at
+              ,regist_man
+              ,regist_de
+              ,updt_man
+              ,updt_de
+        from  tb_str_manage
+        where cg_code = #{cg_code}
+          and me_code = #{me_code}
+          and om_code = #{om_code}
+          and delete_at ='N'
+        order by sm_nm
+    </select>
+
+    <select id="selectStoreAllCount" resultType="integer" parameterType="com.vertexid.vo.NaviVo" >
+        select count(*)
+          from tb_cstmr_group b,
+               tb_manage_entrps c,
+               tb_str_manage a
+               left outer join tb_str_empl d
+                    on a.sm_code = d.sm_code
+                    and a.om_code = d.om_code
+                    and d.delete_at = 'N'
+                    and d.em_sub_at ='N'
+               left outer join tb_empl_manage e
+                    on d.em_no = e.em_no
+                    and d.se_empl_ty = e.em_dty_code
+                    and e.delete_at = 'N'
+               left outer join tb_code f
+                    on d.se_empl_ty = f.c_code
+               left outer join tb_code g
+                    on a.sm_odr = g.c_code
+               , tb_orgnzt_manage h 
+         where a.cg_code = b.cg_code
+           and a.cg_code = c.cg_code
+           and a.me_code = c.me_code
+           and a.om_code = h.om_code
+           and b.delete_at = 'N'
+           and c.delete_at = 'N'
+           and a.delete_at ='N'
+            <if test="cm_code != null and !cm_code.equals('')">
+                and h.cm_code = #{cm_code}
+            </if>
+            <if test="params.om_code != null and !params.om_code.equals('')">
+                and h.om_code = #{params.om_code}
+            </if>
+            <if test="params.cg_nm != null and !params.cg_nm.equals('')">
+                and b.cg_nm like '%${params.cg_nm}%'
+            </if>
+            <if test="params.me_nm != null and !params.me_nm.equals('')">
+                and c.me_nm like '%${params.me_nm}%'
+            </if>
+            <if test="params.sm_nm != null and !params.sm_nm.equals('')">
+                and a.sm_nm like '%${params.sm_nm}%'
+            </if>
+            <if test="params.em_nm != null and !params.em_nm.equals('')">
+                and e.em_nm like '%${params.em_nm}%'
+            </if>
+            <if test="params.se_empl_ty != null and !params.se_empl_ty.equals('')">
+                and d.se_empl_ty = #{params.se_empl_ty}
+            </if>
+            <if test="params.sm_odr != null and !params.sm_odr.equals('')">
+                and a.sm_odr = #{params.sm_odr}
+            </if>
+            <if test="params.sm_cvscafe_at != null and !params.sm_cvscafe_at.equals('')">
+                and a.sm_cvscafe_at = #{params.sm_cvscafe_at}
+            </if>
+            <if test="params.sm_rprsntv_nm != null and !params.sm_rprsntv_nm.equals('')">
+                and a.sm_rprsntv_nm like '%${params.sm_rprsntv_nm}%'
+            </if>
+            order by a.sm_nm asc
+    </select>
+
+    <select id="selectStoreAllList" resultType="com.dasa.store.vo.StoreVo" parameterType="com.vertexid.vo.NaviVo">
+    ${pagingStart}
+        select a.sm_code
+        	 , a.sm_sap_code
+             , b.cg_nm
+             , c.me_nm
+             , a.sm_nm
+             , ifnull(e.em_nm, '') as em_nm
+             , replace(ifnull(f.c_name, ''), '여사원','') as se_empl_ty_nm
+             , ifnull(g.c_name, '') as sm_odr_nm
+             , ifnull(a.sm_tlphon, '') as sm_tlphon
+             , ifnull(a.sm_fxnum, '') as sm_fxnum
+             , ifnull(a.sm_memo, '') as sm_memo
+             , ifnull(a.sm_oper_at, '') as sm_oper_at
+             , case when a.sm_oper_at is not null
+                    then (
+                          case when a.sm_oper_at = 'Y'
+                               then '운영'
+                               else '폐쇄'
+                          end
+                         )
+                    else ''
+               end as sm_oper_nm
+               ,a.sm_cvscafe_at
+          from tb_cstmr_group b,
+               tb_manage_entrps c,
+               tb_str_manage a
+               left outer join tb_str_empl d
+                    on a.sm_code = d.sm_code
+                    and a.om_code = d.om_code
+                    and d.delete_at = 'N'
+                    and d.em_sub_at ='N'
+               left outer join tb_empl_manage e
+                    on d.em_no = e.em_no
+                    and d.se_empl_ty = e.em_dty_code
+                    and e.delete_at = 'N'
+               left outer join tb_code f
+                    on d.se_empl_ty = f.c_code
+               left outer join tb_code g
+                    on a.sm_odr = g.c_code
+               , tb_orgnzt_manage h     
+         where a.cg_code = b.cg_code
+           and a.cg_code = c.cg_code
+           and a.me_code = c.me_code
+           and a.om_code = h.om_code
+           and b.delete_at = 'N'
+           and c.delete_at = 'N'
+           and a.delete_at = 'N'
+           	<if test="cm_code != null and !cm_code.equals('')">
+                and h.cm_code = #{cm_code}
+            </if>
+            <if test="params.om_code != null and !params.om_code.equals('')">
+                and a.om_code = #{params.om_code}
+            </if>
+            <if test="params.cg_nm != null and !params.cg_nm.equals('')">
+                and b.cg_nm like '%${params.cg_nm}%'
+            </if>
+            <if test="params.me_nm != null and !params.me_nm.equals('')">
+                and c.me_nm like '%${params.me_nm}%'
+            </if>
+            <if test="params.sm_nm != null and !params.sm_nm.equals('')">
+                and a.sm_nm like '%${params.sm_nm}%'
+            </if>
+            <if test="params.em_nm != null and !params.em_nm.equals('')">
+                and e.em_nm like '%${params.em_nm}%'
+            </if>
+            <if test="params.se_empl_ty != null and !params.se_empl_ty.equals('')">
+                and d.se_empl_ty = #{params.se_empl_ty}
+            </if>
+            <if test="params.sm_odr != null and !params.sm_odr.equals('')">
+                and a.sm_odr = #{params.sm_odr}
+            </if>
+            <if test="params.sm_cvscafe_at != null and !params.sm_cvscafe_at.equals('')">
+                and a.sm_cvscafe_at = #{params.sm_cvscafe_at}
+            </if>
+            <if test="params.sm_rprsntv_nm != null and !params.sm_rprsntv_nm.equals('')">
+                and a.sm_rprsntv_nm like '%${params.sm_rprsntv_nm}%'
+            </if>
+            order by a.sm_nm asc
+    ${pagingEnd}
+    </select>
+
+    <select id="selectStoreAllExcelList" resultType="com.dasa.store.vo.StoreVo" parameterType="com.dasa.store.vo.StoreVo">
+        select a.sm_code
+        	 , a.sm_sap_code
+             , b.cg_nm
+             , c.me_nm
+             , a.sm_nm
+             , ifnull(e.em_nm, '') as em_nm
+             , replace(ifnull(f.c_name, ''), '여사원', '') as se_empl_ty_nm
+             , ifnull(g.c_name, '') as sm_odr_nm
+             , ifnull(a.sm_tlphon, '') as sm_tlphon
+             , ifnull(a.sm_fxnum, '') as sm_fxnum
+             , ifnull(a.sm_memo, '') as sm_memo
+             , ifnull(a.sm_oper_at, '') as sm_oper_at
+             , case when a.sm_oper_at is not null
+                    then (
+                          case when a.sm_oper_at = 'Y'
+                               then '운영'
+                               else '폐쇄'
+                          end
+                         )
+                    else ''
+               end as sm_oper_nm
+               ,a.sm_cvscafe_at
+               ,h.cm_code
+          from tb_cstmr_group b,
+               tb_manage_entrps c,
+               tb_str_manage a
+               left outer join tb_str_empl d
+                    on a.sm_code = d.sm_code
+                    and a.om_code = d.om_code
+                    and d.delete_at = 'N'
+                    and d.em_sub_at ='N'
+               left outer join tb_empl_manage e
+                    on d.em_no = e.em_no
+                    and d.se_empl_ty = e.em_dty_code
+                    and e.delete_at = 'N'
+               left outer join tb_code f
+                    on d.se_empl_ty = f.c_code
+               left outer join tb_code g
+                    on a.sm_odr = g.c_code
+               , tb_orgnzt_manage h
+         where a.cg_code = b.cg_code
+           and a.cg_code = c.cg_code
+           and a.me_code = c.me_code
+           and a.om_code = h.om_code
+           and b.delete_at = 'N'
+           and c.delete_at = 'N'
+           and a.delete_at ='N'
+            <if test="cm_code != null and !cm_code.equals('')">
+                and h.cm_code = #{cm_code}
+            </if>
+            <if test="om_code != null and !om_code.equals('')">
+                and a.om_code = #{om_code}
+            </if>
+            <if test="cg_nm != null and !cg_nm.equals('')">
+                and b.cg_nm like '%${cg_nm}%'
+            </if>
+            <if test="me_nm != null and !me_nm.equals('')">
+                and c.me_nm like '%${me_nm}%'
+            </if>
+            <if test="sm_nm != null and !sm_nm.equals('')">
+                and a.sm_nm like '%${sm_nm}%'
+            </if>
+            <if test="em_nm != null and !em_nm.equals('')">
+                and e.em_nm like '%${em_nm}%'
+            </if>
+            <if test="se_empl_ty != null and !se_empl_ty.equals('')">
+                and d.se_empl_ty = #{se_empl_ty}
+            </if>
+            <if test="sm_odr != null and !sm_odr.equals('')">
+                and a.sm_odr = #{sm_odr}
+            </if>
+            <if test="sm_cvscafe_at != null and !sm_cvscafe_at.equals('')">
+                and a.sm_cvscafe_at = #{sm_cvscafe_at}
+            </if>
+            <if test="sm_rprsntv_nm != null and !sm_rprsntv_nm.equals('')">
+                and a.sm_rprsntv_nm like '%${sm_rprsntv_nm}%'
+            </if>
+            order by a.sm_nm asc
+    </select>
+
+    <select id="selectStoreRow" parameterType="hashmap" resultType="com.dasa.store.vo.StoreVo" >
+        select a.cg_code,
+               b.cg_nm,
+               a.me_code,
+               c.me_nm,
+               a.sm_code,
+               a.sm_nm,
+               a.om_code,
+               (select t.om_nm
+                  from tb_orgnzt_manage t
+                 where t.om_code = a.om_code
+               ) as om_nm,
+               ifnull(a.sm_oper_at, '') as sm_oper_at,
+               ifnull(d.em_no, '') as em_no,
+               ifnull(e.em_nm, '') as em_nm,
+               ifnull(d.se_empl_ty, '') as se_empl_ty,
+               ifnull(a.sm_odr, '') as sm_odr,
+               case when a.sm_odr is not null
+                    then (
+                          select t.c_name
+                            from tb_code t
+                           where t.c_code = a.sm_odr
+                         )
+                    else ''
+               end as sm_odr_nm,
+               ifnull(a.sm_bizrno, '') as sm_bizrno,
+               ifnull(a.sm_cvscafe_at, '') as sm_cvscafe_at,
+               ifnull(a.sm_rprsntv_nm, '') as sm_rprsntv_nm,
+               ifnull(a.sm_tlphon, '') as sm_tlphon,
+               ifnull(a.sm_fxnum, '') as sm_fxnum,
+               ifnull(a.sm_cmpnm, '') as sm_cmpnm,
+               ifnull(a.sm_area, '') as sm_area,
+               ifnull(a.sm_zipcd, '') as sm_zipcd,
+               ifnull(a.sm_adres, '') as sm_adres,
+               ifnull(a.sm_dtadres, '') as sm_dtadres,
+               ifnull(a.sm_etcadres, '') as sm_etcadres,
+               ifnull(a.sm_la, '') as sm_la,
+               ifnull(a.sm_lo, '') as sm_lo,
+               ifnull(a.sm_site_se, '') as sm_site_se,
+               ifnull(a.sm_site, '') as sm_site,
+               ifnull(a.sm_memo, '') as sm_memo,
+               ifnull(a.use_at, '') as use_at,
+               ifnull(a.delete_at, '') as delete_at,
+               (select ifnull(t.em_no, '')
+                  from tb_str_empl t
+                 where t.sm_code = a.sm_code
+                   and t.om_code = a.om_code
+                   and t.delete_at = 'N'
+                   and t.em_sub_at = 'Y'
+               ) as em_no_sub,
+               (select ifnull(u.em_nm, '')
+                  from tb_empl_manage u
+                 where u.em_no = (
+                                  select ifnull(t.em_no, '')
+                                    from tb_str_empl t
+                                   where t.sm_code = a.sm_code
+                                     and t.om_code = a.om_code
+                                     and t.delete_at = 'N'
+                                     and t.em_sub_at = 'Y'
+                                 )
+               ) as em_nm_sub,
+               ifnull(a.sm_sap_code, '') as sm_sap_code,
+               ifnull(a.sm_area1, '') as sm_area1,
+               ifnull(a.sm_area2, '') as sm_area2,
+               a.regist_man,
+               date_format (a.regist_de, '%Y-%m-%d') as regist_de,
+               a.updt_man,
+               date_format (a.updt_de, '%Y-%m-%d') as updt_de
+          from tb_cstmr_group b,
+               tb_manage_entrps c,
+               tb_str_manage a
+               left outer join tb_str_empl d
+                    on a.sm_code = d.sm_code
+                    and a.om_code = d.om_code
+                    and d.delete_at = 'N'
+                    and d.em_sub_at = 'N'
+               left outer join tb_empl_manage e
+                    on d.em_no = e.em_no
+                    and d.se_empl_ty = e.em_dty_code
+                    and e.delete_at = 'N'
+         where a.cg_code = b.cg_code
+           and a.cg_code = c.cg_code
+           and a.me_code = c.me_code
+           and b.delete_at = 'N'
+           and c.delete_at = 'N'
+           and a.delete_at = 'N'
+           and a.sm_code = #{sm_code}
+    </select>
+
+    <update id="sp_save_50100" statementType="CALLABLE" parameterType="com.dasa.store.vo.StoreVo">
+        {call sp_save_50100(
+            #{flag, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_code, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{om_code, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{cg_code, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{me_code, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_nm, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_oper_at, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{se_empl_ty, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{em_no, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_odr, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_bizrno, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_cmpnm, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_rprsntv_nm, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_zipcd, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_area, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_adres, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_dtadres, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_etcadres, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_la, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_lo, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_site_se, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_site, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_tlphon, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_fxnum, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_memo, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{regist_man, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{use_at, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{delete_at, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_cvscafe_at, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{em_no_sub, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_sap_code, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_area1, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{sm_area2, mode=IN, jdbcType=VARCHAR, javaType=string}
+            , #{res_code, mode=OUT, jdbcType=VARCHAR, javaType=string}
+            , #{res_msg, mode=OUT, jdbcType=VARCHAR, javaType=string}
+        )}
+    </update>
+    <select id="selectEmpList" parameterType="hashmap" resultType="com.dasa.store.vo.EmplManageVo" >
+          SELECT
+                EM_NO
+                ,EM_NM
+         FROM tb_empl_manage
+         WHERE  CM_CODE  =  #{cm_code}
+           AND  BHF_CODE =  #{bhf_code}
+           AND  EM_DTY_CODE = #{en_dty_code}
+    </select>
+
+    <update id="updateStore" parameterType="hashmap">
+        UPDATE tb_str_manage
+        SET
+                me_code = me_code
+                ,cg_code    =  #{cg_code}
+                ,om_code    =  #{om_code}
+                ,sm_nm      =  #{sm_nm}
+                ,sm_odr     =  #{sm_odr}
+                ,sm_bizrno  =  #{sm_bizrno}
+                ,sm_cmpnm   =  #{sm_cmpnm}
+                ,sm_area    =  #{sm_area}
+                ,sm_zipcd   =  #{sm_zipcd}
+                ,sm_adres   =  #{sm_adres}
+                ,sm_dtadres =  #{sm_dtadres}
+                ,sm_etcadres=  #{sm_etcadres}
+                ,sm_la      =  #{sm_la}
+                ,sm_lo      =  #{sm_lo}
+                ,sm_rprsntv_nm  = #{sm_rprsntv_nm}
+                ,sm_site_se =  #{sm_site_se}
+                ,sm_site    =  #{sm_site}
+                ,sm_tlphon  =  #{sm_tlphon}
+                ,sm_fxnum   =  #{sm_fxnum}
+                ,sm_memo    =  #{sm_memo}
+                ,delete_at  =  #{delete_at}
+                ,updt_man   =  #{updt_man}
+                ,updt_de    =  NOW()
+        WHERE sm_code=#{sm_code}
+    </update>
+
+    <update id="deleteStore" parameterType="hashmap">
+        UPDATE tb_str_manage
+        SET
+            DELETE_AT    = 'Y'
+            ,UPDT_MAN    = #{updt_man}
+            ,UPDT_DE     = NOW()
+        WHERE sm_code=#{sm_code}
+    </update>
+
+    <insert id="insertStore" parameterType="hashmap">
+        INSERT INTO tb_str_manage
+            (
+                sm_code
+                ,me_code
+                ,cg_code
+                ,om_code
+                ,sm_nm
+                ,sm_odr
+                ,sm_bizrno
+                ,sm_cmpnm
+                ,sm_area
+                ,sm_zipcd
+                ,sm_adres
+                ,sm_dtadres
+                ,sm_etcadres
+                ,sm_la
+                ,sm_lo
+                ,sm_rprsntv_nm
+                ,sm_site_se
+                ,sm_site
+                ,sm_tlphon
+                ,sm_fxnum
+                ,sm_memo
+                ,delete_at
+                ,regist_man
+                ,regist_de
+                ,updt_man
+                ,updt_de
+            )
+        VALUES
+            (
+                <if test="autoYn.equals('Y')">
+                (select RIGHT(CONCAT('0000', IFNULL(CAST(MAX(sm_code) AS SIGNED), 1)), 5) from tb_str_manage)
+                </if>
+                <if test="!autoYn.equals('Y')">
+                #{sm_code}
+                </if>
+                ,#{me_code}
+                ,#{cg_code}
+                ,#{om_code}
+                ,#{sm_nm}
+                ,#{sm_odr}
+                ,#{sm_bizrno}
+                ,#{sm_cmpnm}
+                ,#{sm_area}
+                ,#{sm_zipcd}
+                ,#{sm_adres}
+                ,#{sm_dtadres}
+                ,#{sm_etcadres}
+                ,#{sm_la}
+                ,#{sm_lo}
+                ,#{sm_rprsntv_nm}
+                ,#{sm_site_se}
+                ,#{sm_site}
+                ,#{sm_tlphon}
+                ,#{sm_fxnum}
+                ,#{sm_memo}
+                ,#{delete_at}
+                ,#{regist_man}
+                ,NOW()
+                ,#{updt_man}
+                ,NOW()
+            )
+    </insert>
+
+    <select id="emplAutoComplate" resultType="com.vertexid.vo.KeyValueVo" parameterType="hashmap" >
+        SELECT EM_NO AS "key"
+             , EM_NM AS "value"
+        FROM tb_empl_manage
+        WHERE (CASE WHEN EM_NM &lt; 'ㄱ' THEN UPPER(SUBSTR(EM_NM, 1, 1))
+                    WHEN ASCII('ㄱ') &lt;= ASCII(EM_NM) AND
+                         ASCII(EM_NM) &lt;= ASCII('ㅎ') THEN EM_NM
+                    WHEN EM_NM &lt; '나' then 'ㄱ'
+                    WHEN EM_NM &lt; '다' then 'ㄴ'
+                    WHEN EM_NM &lt; '라' then 'ㄷ'
+                    WHEN EM_NM &lt; '마' then 'ㄹ'
+                    WHEN EM_NM &lt; '바' then 'ㅁ'
+                    WHEN EM_NM &lt; '사' then 'ㅂ'
+                    WHEN EM_NM &lt; '아' then 'ㅅ'
+                    WHEN EM_NM &lt; '자' then 'ㅇ'
+                    WHEN EM_NM &lt; '차' then 'ㅈ'
+                    WHEN EM_NM &lt; '카' then 'ㅊ'
+                    WHEN EM_NM &lt; '타' then 'ㅋ'
+                    WHEN EM_NM &lt; '파' then 'ㅌ'
+                    WHEN EM_NM &lt; '하' then 'ㅍ'
+                    ELSE 'ㅎ'
+               END = UPPER(#{keyword})
+        OR EM_NM LIKE  CONCAT('%',#{keyword},'%'))
+        AND DELETE_AT = 'N'
+        AND USE_AT='Y'
+        AND EM_DTY_CODE = #{se_empl_ty}
+        AND BHF_CODE = #{bhf_code}
+
+    </select>
+    
+      	
+  	<select id="selectJuso" parameterType="map" resultType="com.dasa.store.vo.StoreVo" >
+  		select sm_code, sm_zipcd, replace(replace(sm_adres,'(', ' '), ')', '') as sm_adres, sm_dtadres, sm_etcadres 
+  		from tb_str_manage
+  		where 1=1	
+		order by om_code, sm_code 
+		limit 12700, 300
+	</select>
+
+	<select id="saveJuso" parameterType="com.dasa.store.vo.StoreVo" resultType="com.dasa.store.vo.StoreVo" >	
+		update tb_str_manage
+  		set sm_la = #{sm_la}
+  			, sm_lo = #{sm_lo}
+  			, updt_de = now()
+		where sm_code = #{sm_code}
+	</select>
+</mapper>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="actvityCvs">	
+	<select  id="cvsListCnt" resultType="int" parameterType="com.vertexid.vo.NaviVo" >
+		SELECT COUNT(*) cnt
+		FROM tb_plan_rnd_day_item  PRDI
+		JOIN tb_str_manage SM
+		  ON PRDI.prdi_sm_code = SM.sm_code
+		 AND SM.sm_cvscafe_at = 'Y'
+		JOIN tb_orgnzt_manage OM
+		  ON PRDI.om_code = OM.om_code
+		JOIN tb_empl_manage EM
+		  ON PRDI.regist_man = EM.em_no  
+		LEFT OUTER JOIN tb_diary_rnd_cvs DRC
+		  ON PRDI.plan_de = DRC.base_de
+		 AND PRDI.regist_man = DRC.regist_man  
+	   WHERE PRDI.delete_at = 'N'
+	   	 <if test="params.smNm != null and !params.smNm.equals('') ">
+	     AND PRDI.prdi_sm_code_nm LIKE '%${params.smNm}%'
+	     </if>
+	   	 <if test="params.emNm != null and !params.emNm.equals('') ">
+		 AND EM.em_nm LIKE '%${params.emNm}%'
+	     </if>
+	   	 <if test="params.omCode != null and !params.omCode.equals('') ">
+		 AND PRDI.om_code = #{params.omCode}
+	     </if>
+	   	 <if test="params.tmCode != null and !params.tmCode.equals('') ">
+		 AND EM.team_code = #{params.tmCode}
+	     </if>
+	   	 <if test="params.startDate != null and !params.startDate.equals('') ">
+		 AND PRDI.plan_de  &gt;= #{params.startDate}
+	     </if>
+	   	 <if test="params.endDate != null and !params.endDate.equals('') ">
+		 AND PRDI.plan_de  &lt;= #{params.endDate}
+	     </if>
+	</select>
+	<select  id="cvsList" resultType="com.dasa.activity.vo.ActivityCvsVo" parameterType="com.vertexid.vo.NaviVo" >
+		SELECT DRC.drc_innb
+			 , OM.om_nm
+			 , EM.em_nm
+			 , SM.sm_nm
+			 , DATE_FORMAT(PRDI.plan_de,'%Y-%m-%d') plan_de
+			 , IF(DRC.drc_innb IS NULL , 'N' ,'Y') cvs_status
+		FROM tb_plan_rnd_day_item  PRDI
+		JOIN tb_str_manage SM
+		  ON PRDI.prdi_sm_code = SM.sm_code
+		 AND SM.sm_cvscafe_at = 'Y'
+		JOIN tb_orgnzt_manage OM
+		  ON PRDI.om_code = OM.om_code
+		JOIN tb_empl_manage EM
+		  ON PRDI.regist_man = EM.em_no  
+		LEFT OUTER JOIN tb_diary_rnd_cvs DRC
+		  ON PRDI.plan_de = DRC.base_de
+		 AND PRDI.regist_man = DRC.regist_man  
+		 AND PRDI.prdi_sm_code =  DRC.sm_code
+	   WHERE PRDI.delete_at = 'N'
+	   	 <if test="params.smNm != null and !params.smNm.equals('') ">
+	     AND PRDI.prdi_sm_code_nm LIKE '%${params.smNm}%'
+	     </if>
+	   	 <if test="params.emNm != null and !params.emNm.equals('') ">
+		 AND EM.em_nm LIKE '%${params.emNm}%'
+	     </if>
+	   	 <if test="params.omCode != null and !params.omCode.equals('') ">
+		 AND PRDI.om_code = #{params.omCode}
+	     </if>
+	   	 <if test="params.tmCode != null and !params.tmCode.equals('') ">
+		 AND EM.team_code = #{params.tmCode}
+	     </if>
+	   	 <if test="params.startDate != null and !params.startDate.equals('') ">
+		 AND PRDI.plan_de  &gt;= #{params.startDate}
+	     </if>
+	   	 <if test="params.endDate != null and !params.endDate.equals('') ">
+		 AND PRDI.plan_de  &lt;= #{params.endDate}
+	     </if>
+		ORDER BY PRDI.plan_de DESC
+		${pagingEnd}
+	</select>
+	<select  id="cvsItemList" resultType="com.dasa.activity.vo.ActivityCvsItemVo" parameterType="String" >
+		SELECT RC.drc_innb
+			 , RCC.drcc_innb
+			 , drcci_innb
+			 , drcc_c_code 
+			 , drcc_c_code_nm
+			 , drcci_c_code_nm
+			 , drcci_c_desc
+			 , ifnull(drcci_state,0) drcci_state 
+			 , (select count(drcci_innb) from tb_diary_rnd_cvs_check_item A WHERE A.drcc_innb = RCC.drcc_innb ) child_cnt
+		  FROM tb_diary_rnd_cvs RC
+		  LEFT OUTER JOIN tb_diary_rnd_cvs_check RCC
+		    ON RC.drc_innb = RCC.drc_innb
+		   AND RCC.delete_at = 'N'
+		  LEFT OUTER JOIN tb_diary_rnd_cvs_check_item RCCI
+		    ON RCC.drc_innb=  RCCI.drc_innb
+		   AND RCC.drcc_innb = RCCI.drcc_innb  
+		   AND RCCI.delete_at = 'N'
+		 WHERE RC.drc_innb = #{drc_innb}
+		   AND RC.delete_at = 'N'
+	</select>
+	<select  id="rndCvsMatter" resultType="String" parameterType="String" >
+		SELECT drc_partclr_matter AS partclr_matter
+		  FROM  tb_diary_rnd_cvs  
+	  	 WHERE drc_innb = #{drc_innb}
+	</select>
+	
+	
+</mapper>

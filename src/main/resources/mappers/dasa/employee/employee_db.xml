@@ -1,0 +1,815 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="employee">
+
+    <select id="getEmployeeListCnt" parameterType="com.vertexid.vo.NaviVo" resultType="int">
+        <![CDATA[
+            select count(aa.cnt)
+              from (
+                    select count(*) as cnt
+                      from tb_empl_manage a
+                           left outer join tb_str_empl b
+                                on a.em_no = b.em_no
+                                and b.delete_at = 'N'
+                           left outer join tb_str_manage c
+                                on b.sm_code = c.sm_code
+                                and c.use_at = 'Y'
+                                and c.delete_at = 'N'
+                           left outer join tb_manage_entrps d
+                                on c.me_code = d.me_code
+                                and c.cg_code = d.cg_code
+                                and d.use_at = 'Y'
+                                and d.delete_at = 'N'
+                     where a.em_no != 'superuser'
+                       and a.delete_at = 'N'
+        ]]>
+        <if test="params.em_dty_code!=null and !params.em_dty_code.equals('')">
+                       and a.em_dty_code = #{params.em_dty_code}
+        </if>
+        <if test="params.searchCompany!=null and !params.searchCompany.equals('')">
+                       and a.cm_code = #{params.searchCompany}
+        </if>
+        <if test="params.searchBranch!=null and !params.searchBranch.equals('')">
+                       and a.bhf_code = #{params.searchBranch}
+        </if>
+        <if test="params.searchStoreCode!=null and !params.searchStoreCode.equals('')">
+                       and c.sm_code = #{params.searchStoreCode}
+        </if>
+        <if test="params.searchStoreName!=null and !params.searchStoreName.equals('')">
+                       and c.sm_nm like '%${params.searchStoreName}%'
+        </if>
+        <if test="params.searchName!=null and !params.searchName.equals('')">
+                       and a.em_nm like '%${params.searchName}%'
+        </if>
+        <if test="params.searchId!=null and !params.searchId.equals('')">
+                       and a.em_id like '%${params.searchId}%'
+        </if>
+        <if test="params.searchValueFrom!=null and !params.searchValueFrom.equals('') and params.searchValueTo!=null and !params.searchValueTo.equals('')">
+                       and a.${params.searchKey} between replace(#{params.searchValueFrom}, '-', '') and replace(#{params.searchValueTo}, '-', '')
+        </if>
+        <if test="params.searchUseAt!=null and params.searchUseAt.equals('RETIRE')">
+                       and a.use_at = 'N'
+        </if>
+        <if test="params.searchUseAt!=null and params.searchUseAt.equals('WORK')">
+                       and a.use_at = 'Y'
+        </if>
+        <if test="params.exceptEmployeeNo!=null and !params.exceptEmployeeNo.equals('')">
+                       and a.em_no != #{params.exceptEmployeeNo}
+        </if>
+                     group by a.em_no, a.cm_code, a.bhf_code, a.team_code, a.em_nm, a.em_id, a.em_password, a.em_rspofc_code, a.em_dty_code
+                     order by a.em_nm asc
+                   ) aa
+    </select>
+
+    <select id="getEmployeeList" parameterType="com.vertexid.vo.NaviVo" resultType="com.dasa.employee.vo.EmployeeVo">
+        ${pagingStart}
+        <![CDATA[
+            select a.em_no, /*사원번호*/
+                   a.cm_code, /*회사코드*/
+                   a.bhf_code, /*지점코드*/
+                   a.team_code, /*팀코드*/
+                   a.em_nm, /*사원명*/
+                   a.em_id, /*사원id*/
+                   ifnull(max(d.me_nm), '') as me_nm, /*관리업체명*/
+                   case when max(c.sm_nm) is not null
+                        then concat(' ', max(c.sm_nm))
+                        else ''
+                   end as sm_nm, /*매장명*/
+                   ifnull(max(a.em_ampm_at), '') as em_ampm_at, /*근무시간유형(A,P)*/
+                   case when max(a.em_ampm_at) is not null
+                        then (
+                               case when max(a.em_ampm_at) = 'A' then '(오전)'
+                                    when max(a.em_ampm_at) = 'P1' then '(오후1)'
+                                    when max(a.em_ampm_at) = 'P2' then '(오후2)'
+                                    else ''
+                               end
+                             )
+                        else ''
+                   end as em_ampm_at_nm, /*근무시간 FORMATTING*/
+                   ifnull(max(a.em_mbtl_num), '') as em_mbtl_num, /*휴대전화*/
+                   ifnull(max(a.em_mbtl_open_at), 'Y') as em_mbtl_open_at, /*개인연락처 공개여부*/
+                   (select t.c_name
+                      from tb_code t
+                     where t.c_code = a.em_rspofc_code) as em_rspofc_nm, /*직책명*/
+                   ifnull(max(a.em_brthdy), '') as em_brthdy, /*생년월일*/
+                   ifnull(max(a.am_no), 0) as am_no, /*첨부파일고유번호*/
+                   case when max(a.am_no) is not null
+                        then (
+                              select ifnull(u.ai_path, '')
+                                from tb_attach_item u
+                               where u.ai_no = (select ifnull(max(t.ai_no), 0)
+                                                  from tb_attach_item t
+                                                 where t.am_no = max(a.am_no)
+                                                   and t.delete_at = 'N')
+                             )
+                        else ''
+                   end as image_url
+              from tb_empl_manage a
+                   left outer join tb_str_empl b
+                        on a.em_no = b.em_no
+                        and b.delete_at = 'N'
+                   left outer join tb_str_manage c
+                        on b.sm_code = c.sm_code
+                        and c.use_at = 'Y'
+                        and c.delete_at = 'N'
+                   left outer join tb_manage_entrps d
+                        on c.me_code = d.me_code
+                        and c.cg_code = d.cg_code
+                        and d.use_at = 'Y'
+                        and d.delete_at = 'N'
+             where a.em_no != 'superuser'
+               and a.delete_at = 'N'
+        ]]>
+        <if test="params.em_dty_code!=null and !params.em_dty_code.equals('')">
+               and a.em_dty_code = #{params.em_dty_code}
+        </if>
+        <if test="params.searchCompany!=null and !params.searchCompany.equals('')">
+               and a.cm_code = #{params.searchCompany}
+        </if>
+        <if test="params.searchBranch!=null and !params.searchBranch.equals('')">
+               and a.bhf_code = #{params.searchBranch}
+        </if>
+        <if test="params.searchStoreCode!=null and !params.searchStoreCode.equals('')">
+               and c.sm_code = #{params.searchStoreCode}
+        </if>
+        <if test="params.searchStoreName!=null and !params.searchStoreName.equals('')">
+               and c.sm_nm like '%${params.searchStoreName}%'
+        </if>
+        <if test="params.searchName!=null and !params.searchName.equals('')">
+               and a.em_nm like '%${params.searchName}%'
+        </if>
+        <if test="params.searchId!=null and !params.searchId.equals('')">
+               and a.em_id like '%${params.searchId}%'
+        </if>
+        <if test="params.searchValueFrom!=null and !params.searchValueFrom.equals('') and params.searchValueTo!=null and !params.searchValueTo.equals('')">
+               and a.${params.searchKey} between replace(#{params.searchValueFrom}, '-', '') and replace(#{params.searchValueTo}, '-', '')
+        </if>
+        <if test="params.searchUseAt!=null and params.searchUseAt.equals('RETIRE')">
+               and a.use_at = 'N'
+        </if>
+        <if test="params.searchUseAt!=null and params.searchUseAt.equals('WORK')">
+               and a.use_at = 'Y'
+        </if>
+        <if test="params.exceptEmployeeNo!=null and !params.exceptEmployeeNo.equals('')">
+               and a.em_no != #{params.exceptEmployeeNo}
+        </if>
+             group by a.em_no, a.cm_code, a.bhf_code, a.team_code, a.em_nm, a.em_id, a.em_password, a.em_rspofc_code, a.em_dty_code
+             order by a.em_nm asc
+        ${pagingEnd}
+    </select>
+
+    <select id="getEmployeeView" parameterType="java.lang.String" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select a.em_no, /*사원번호*/
+                   a.cm_code, /*회사코드*/
+                   a.bhf_code, /*지점코드*/
+                   (select t.om_nm
+                      from tb_orgnzt_manage t
+                     where t.om_code = a.bhf_code) as bhf_nm, /*지점명*/
+                   a.team_code, /*팀코드*/
+                   (select t.om_nm
+                      from tb_orgnzt_manage t
+                     where t.om_code = a.team_code) as team_nm, /*팀명*/
+                   a.em_nm, /*사원명*/
+                   a.em_id, /*사원id*/
+                   a.em_password, /*비밀번호*/
+                   ifnull(max(d.me_nm), '') as me_nm, /*관리업체명*/
+                   ifnull(max(c.sm_nm), '') as sm_nm, /*매장명*/
+                   ifnull(max(a.em_ecny_de), '') as em_ecny_de, /*입사일*/
+                   case when max(a.em_ecny_de) is not null
+                        then (
+                              case when length(max(a.em_ecny_de)) = 8
+                                   then date_format(max(a.em_ecny_de), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_ecny_de_nm, /*입사일 FORMATTING*/
+                   ifnull(max(a.em_retire_de), '') as em_retire_de, /*퇴사일*/
+                   case when max(a.em_retire_de) is not null
+                        then (
+                              case when length(max(a.em_retire_de)) = 8
+                                   then date_format(max(a.em_retire_de), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_retire_de_nm, /*퇴사일 FORMATTING*/
+                   a.em_rspofc_code, /*직책코드*/
+                   (select t.c_name
+                      from tb_code t
+                     where t.c_code = a.em_rspofc_code) as em_rspofc_nm, /*직책명*/
+                   a.em_dty_code, /*직무코드*/
+                   (select t.c_name
+                      from tb_code t
+                     where t.c_code = a.em_dty_code) as em_dty_nm, /*직무명*/
+                   ifnull(max(a.em_ampm_at), '') as em_ampm_at, /*근무시간유형(A,P)*/
+                   case when max(a.em_ampm_at) is not null
+                        then (
+                              case when max(a.em_ampm_at) = 'A' then '(오전)'
+                                   when max(a.em_ampm_at) = 'P1' then '(오후1)'
+                                   when max(a.em_ampm_at) = 'P2' then '(오후2)'
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_ampm_at_nm, /*근무시간 FORMATTING*/
+                   ifnull(max(a.em_brthdy), '') as em_brthdy, /*생년월일*/
+                   case when max(a.em_brthdy) is not null
+                        then (
+                              case when length(max(a.em_brthdy)) = 8
+                                   then date_format(max(a.em_brthdy), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_brthdy_nm, /*생년월일 FORMATTING*/
+                   ifnull(max(a.em_cldr), '') as em_cldr, /*달력유형*/
+                   case when max(a.em_cldr) is not null
+                        then (
+                              select ifnull(t.c_name, '')
+                                from tb_code t
+                               where t.c_code = max(a.em_cldr)
+                             )
+                        else ''
+                   end as em_cldr_nm, /*달력유형명*/
+                   ifnull(max(a.em_sexdstn), '') as em_sexdstn, /*성별(M,F)*/
+                   case when max(a.em_sexdstn) is not null
+                        then (
+                              case when max(a.em_sexdstn) = 'M' then '남'
+                                   when max(a.em_sexdstn) = 'F' then '여'
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_sexdstn_nm, /*성별 FORMATTING*/
+                   ifnull(max(a.em_mbtl_num), '') as em_mbtl_num, /*휴대전화*/
+                   ifnull(max(a.em_mrnry_de), '') as em_mrnry_de, /*결혼기념일*/
+                   case when max(a.em_mrnry_de) is not null
+                        then (
+                              case when length(max(a.em_mrnry_de)) = 8
+                                   then date_format(max(a.em_mrnry_de), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_mrnry_de_nm, /*결혼기념일 FORMATTING*/
+                   ifnull(max(a.em_trans_fee), 0) as em_trans_fee, /*기준교통비*/
+                   ifnull(max(a.em_mbtl_open_at), '') as em_mbtl_open_at, /*개인연락처 공개여부*/
+                   case when ifnull(max(a.em_mbtl_open_at), '') = 'Y'
+                        then '공개'
+                        else '비공개'
+                   end as em_mbtl_open_at_nm, /*개인연락처 공개여부 FORMATTING*/
+                   ifnull(max(a.em_certify_at), '') as em_certify_at, /*디바이스 인증여부*/
+                   case when ifnull(max(a.em_certify_at), '') = 'Y'
+                        then '인증'
+                        else '비인증'
+                   end as em_certify_at_nm, /*디바이스 인증여부 FORMATTING*/
+                   ifnull(max(a.em_zipcd), '') as em_zipcd, /*우편번호*/
+                   ifnull(max(a.em_adres), '') as em_adres, /*주소*/
+                   ifnull(max(a.em_dtadres), '') as em_dtadres, /*상세주소*/
+                   ifnull(max(a.em_etcadres), '') as em_etcadres, /*기타주소*/
+                   ifnull(max(a.am_no), 0) as am_no, /*첨부파일고유번호*/
+                   case when max(a.am_no) is not null
+                        then (
+                              select ifnull(u.ai_path, '')
+                                from tb_attach_item u
+                               where u.ai_no = (
+                                                select ifnull(max(t.ai_no), 0)
+                                                  from tb_attach_item t
+                                                 where t.am_no = max(a.am_no)
+                                                   and t.delete_at = 'N'
+                                               )
+                             )
+                        else ''
+                   end as image_url, /*사진URL*/
+                   max(a.use_at) as use_at, /*재직여부(Y:재직,N:퇴사)*/
+                   case when max(a.use_at) = 'Y'
+                        then '재직'
+                        else '퇴사'
+                   end as use_at_nm, /*재직여부 FORMATTING*/
+                   max(a.delete_at) as delete_at /*삭제여부*/
+              from tb_empl_manage a
+                   left outer join tb_str_empl b
+                        on a.em_no = b.em_no
+                        and b.delete_at = 'N'
+                   left outer join tb_str_manage c
+                        on b.sm_code = c.sm_code
+                        and c.use_at = 'Y'
+                        and c.delete_at = 'N'
+                   left outer join tb_manage_entrps d
+                        on c.me_code = d.me_code
+                        and c.cg_code = d.cg_code
+                        and d.use_at = 'Y'
+                        and d.delete_at = 'N'
+             where a.em_no != 'superuser'
+               and a.delete_at = 'N'
+               and a.em_no = #{em_no}
+             group by a.em_no, a.cm_code, a.bhf_code, a.team_code, a.em_nm, a.em_id, a.em_password, a.em_rspofc_code, a.em_dty_code
+        ]]>
+    </select>
+
+    <select id="getEmployeeListByOmCode" parameterType="hashmap" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select a.em_no,
+                   a.em_nm
+              from tb_empl_manage a
+             where a.em_no != 'superuser'
+               and a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and a.cm_code = #{cm_code}
+        ]]>
+        <if test="om_code!=null and !om_code.equals('')">
+               and a.bhf_code = #{om_code}
+        </if>
+        <if test="em_nm!=null and !em_nm.equals('')">
+               and a.em_nm like '%${em_nm}%'
+        </if>
+    </select>
+    <select id="getEmployeeListByTeamCode" parameterType="hashmap" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select a.em_no,
+                   a.em_nm
+              from tb_empl_manage a
+             where a.em_no != 'superuser'
+               and a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and em_dty_code = '0000000007'
+        ]]>
+        <if test="om_code!=null and !om_code.equals('')">
+               and a.bhf_code = #{om_code}
+        </if>
+        <if test="team_code !=null and !team_code.equals('')">
+               and a.team_code = #{team_code}
+        </if>
+    </select>
+
+    <select id="checkUserId" parameterType="com.dasa.employee.vo.EmployeeVo" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select case when exists (
+                       select 'X'
+                         from tb_empl_manage a
+                        where a.em_id = #{em_id}
+                   ) then 'Y' else 'N' end as check_id,
+                   (
+                    select a.em_no
+                      from tb_empl_manage a
+                     where a.em_id = #{em_id}
+                   ) as exist_em_no
+              from dual
+        ]]>
+    </select>
+
+    <select id="checkTeamHeader" parameterType="com.dasa.employee.vo.EmployeeVo" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select case when exists (
+                       select 'X'
+                         from tb_empl_manage a
+                        where a.em_no != 'superuser'
+                          and a.use_at = 'Y'
+                          and a.delete_at = 'N'
+                          and a.team_code = #{team_code}
+                          and a.em_dty_code = #{em_dty_code}
+                   ) then 'Y' else 'N' end as check_timhdr,
+                   (
+                    select a.em_no
+                      from tb_empl_manage a
+                     where a.em_no != 'superuser'
+                       and a.use_at = 'Y'
+                       and a.delete_at = 'N'
+                       and a.team_code = #{team_code}
+                       and a.em_dty_code = #{em_dty_code}
+                   ) as timhdr_em_no
+              from dual
+        ]]>
+    </select>
+
+    <select id="getEmployeeNextVal" resultType="java.lang.String">
+        <![CDATA[
+            select lpad(get_next_seq_val('em_no_seq'), 5, '0')
+              from dual
+        ]]>
+    </select>
+
+    <insert id="insertEmployee" parameterType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            insert into tb_empl_manage (
+                   em_no
+                 , cm_code
+                 , bhf_code
+                 , team_code
+                 , em_nm
+                 , em_id
+                 , em_password
+                 , em_ecny_de
+                 , em_retire_de
+                 , em_rspofc_code
+                 , em_dty_code
+                 , em_ampm_at
+                 , em_brthdy
+                 , em_cldr
+                 , em_sexdstn
+                 , em_mbtl_num
+                 , em_mrnry_de
+                 , em_trans_fee
+                 , em_mbtl_open_at
+                 , use_at
+                 , em_certify_at
+                 , em_zipcd
+                 , em_adres
+                 , em_dtadres
+                 , em_etcadres
+                 , delete_at
+                 , regist_man
+                 , regist_de
+                 , updt_man
+                 , updt_de
+        ]]>
+        <if test="am_no!=null and !am_no.equals('')">
+                 , am_no
+        </if>
+        <![CDATA[
+            ) values (
+                   #{em_no}
+                 , #{cm_code}
+                 , #{bhf_code}
+                 , #{team_code}
+                 , #{em_nm, jdbcType=VARCHAR}
+                 , #{em_id}
+                 , #{em_password}
+                 , replace(#{em_ecny_de, jdbcType=CHAR}, '-', '')
+                 , replace(#{em_retire_de, jdbcType=CHAR}, '-', '')
+                 , #{em_rspofc_code}
+                 , #{em_dty_code}
+                 , #{em_ampm_at, jdbcType=CHAR}
+                 , replace(#{em_brthdy, jdbcType=CHAR}, '-', '')
+                 , #{em_cldr, jdbcType=VARCHAR}
+                 , #{em_sexdstn, jdbcType=CHAR}
+                 , #{em_mbtl_num, jdbcType=VARCHAR}
+                 , replace(#{em_mrnry_de, jdbcType=CHAR}, '-', '')
+                 , #{em_trans_fee, jdbcType=INTEGER}
+                 , #{em_mbtl_open_at, jdbcType=CHAR}
+                 , #{use_at, jdbcType=CHAR}
+                 , #{em_certify_at, jdbcType=CHAR}
+                 , #{em_zipcd, jdbcType=CHAR}
+                 , #{em_adres, jdbcType=VARCHAR}
+                 , #{em_dtadres, jdbcType=VARCHAR}
+                 , #{em_etcadres, jdbcType=VARCHAR}
+                 , 'N'
+                 , #{regist_man}
+                 , now()
+                 , #{updt_man}
+                 , now()
+        ]]>
+        <if test="am_no!=null and !am_no.equals('')">
+                 , #{am_no, jdbcType=INTEGER}
+        </if>
+            )
+    </insert>
+
+    <update id="updateEmployee" parameterType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            update tb_empl_manage
+               set bhf_code = #{bhf_code}
+                 , team_code = #{team_code}
+                 , em_nm = #{em_nm, jdbcType=VARCHAR}
+                 , em_id = #{em_id}
+                 , em_password = #{em_password}
+                 , em_ecny_de = replace(#{em_ecny_de, jdbcType=CHAR}, '-', '')
+                 , em_retire_de = replace(#{em_retire_de, jdbcType=CHAR}, '-', '')
+                 , em_rspofc_code = #{em_rspofc_code}
+                 , em_dty_code = #{em_dty_code}
+                 , em_ampm_at = #{em_ampm_at, jdbcType=CHAR}
+                 , em_brthdy = replace(#{em_brthdy, jdbcType=CHAR}, '-', '')
+                 , em_cldr = #{em_cldr, jdbcType=VARCHAR}
+                 , em_sexdstn = #{em_sexdstn, jdbcType=CHAR}
+                 , em_mbtl_num = #{em_mbtl_num, jdbcType=VARCHAR}
+                 , em_mrnry_de = replace(#{em_mrnry_de, jdbcType=CHAR}, '-', '')
+                 , em_trans_fee = #{em_trans_fee, jdbcType=INTEGER}
+                 , em_mbtl_open_at = #{em_mbtl_open_at, jdbcType=CHAR}
+                 , use_at = #{use_at, jdbcType=CHAR}
+                 , em_certify_at = #{em_certify_at, jdbcType=CHAR}
+                 , em_zipcd = #{em_zipcd, jdbcType=CHAR}
+                 , em_adres = #{em_adres, jdbcType=VARCHAR}
+                 , em_dtadres = #{em_dtadres, jdbcType=VARCHAR}
+                 , em_etcadres = #{em_etcadres, jdbcType=VARCHAR}
+                 , updt_man = #{updt_man}
+                 , updt_de = now()
+        ]]>
+        <if test="am_no!=null and !am_no.equals('')">
+                 , am_no = #{am_no, jdbcType=INTEGER}
+        </if>
+             where em_no = #{em_no}
+    </update>
+
+    <update id="changePassword" parameterType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            update tb_empl_manage
+               set em_password = #{em_password}
+                 , updt_man = #{updt_man}
+                 , updt_de = now()
+             where em_no = #{em_no}
+        ]]>
+    </update>
+
+    <update id="changeContactOpen" parameterType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            update tb_empl_manage
+               set em_mbtl_open_at = #{em_mbtl_open_at}
+                 , updt_man = #{updt_man}
+                 , updt_de = now()
+             where em_no = #{em_no}
+        ]]>
+    </update>
+
+    <select id="getProfilePicture" parameterType="java.lang.String" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select ifnull(a.am_no, 0) as am_no
+              from tb_empl_manage a
+             where a.em_no = #{em_no}
+        ]]>
+    </select>
+
+    <update id="setProfilePicture" parameterType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            update tb_empl_manage
+               set am_no = #{am_no}
+                 , updt_man = #{updt_man}
+                 , updt_de = now()
+             where em_no = #{em_no}
+        ]]>
+    </update>
+
+    <select id="getHrHistoryList" parameterType="java.lang.String" resultType="com.dasa.employee.vo.HrHistoryVo">
+        <![CDATA[
+            select a.hm_innb
+                 , a.em_no
+                 , a.hm_gnfd_de
+                 , case when length(a.hm_gnfd_de) = 8
+                        then date_format(a.hm_gnfd_de, '%Y-%m-%d')
+                        else ''
+                   end as hm_gnfd_de_nm
+                 , hm_gnfd_cn
+                 , hm_partclr_matter
+                 , delete_at
+              from tb_hr_manage a
+             where a.delete_at = 'N'
+               and a.em_no = #{em_no}
+             order by a.hm_gnfd_de asc, a.regist_man desc
+        ]]>
+    </select>
+
+    <insert id="insertHrHistory" parameterType="java.util.Map">
+        <![CDATA[
+            insert into tb_hr_manage (
+                   hm_innb
+                 , em_no
+                 , hm_gnfd_de
+                 , hm_gnfd_cn
+                 , hm_partclr_matter
+                 , delete_at
+                 , regist_man
+                 , regist_de
+                 , updt_man
+                 , updt_de
+            ) values (
+                   get_next_seq_val('hm_innb_seq')
+                 , #{em_no}
+                 , replace(#{hm_gnfd_de_nm, jdbcType=CHAR}, '-', '')
+                 , #{hm_gnfd_cn, jdbcType=VARCHAR}
+                 , #{hm_partclr_matter, jdbcType=VARCHAR}
+                 , 'N'
+                 , #{regist_man}
+                 , now()
+                 , #{updt_man}
+                 , now()
+            )
+        ]]>
+    </insert>
+
+    <update id="updateHrHistory" parameterType="java.util.Map">
+        <![CDATA[
+            update tb_hr_manage a
+               set a.hm_gnfd_de = replace(#{hm_gnfd_de_nm, jdbcType=CHAR}, '-', '')
+                 , a.hm_gnfd_cn = #{hm_gnfd_cn, jdbcType=VARCHAR}
+                 , a.hm_partclr_matter = #{hm_partclr_matter, jdbcType=VARCHAR}
+                 , a.delete_at = 'N'
+                 , a.updt_man = #{updt_man}
+                 , a.updt_de = now()
+             where a.hm_innb = #{hm_innb}
+        ]]>
+    </update>
+
+    <update id="deleteHrHistory" parameterType="com.dasa.employee.vo.HrHistoryVo">
+        <![CDATA[
+            update tb_hr_manage a
+               set a.delete_at = 'Y'
+                 , a.updt_man = #{updt_man}
+                 , a.updt_de = now()
+             where a.em_no = #{em_no}
+        ]]>
+    </update>
+
+    <select id="getWorkingStoreList" parameterType="java.lang.String" resultType="com.dasa.employee.vo.WorkingStoreVo">
+        <![CDATA[
+            select a.em_no,
+                   d.cg_nm,
+                   c.me_nm,
+                   b.sm_nm,
+                   date_format(a.regist_de, '%Y-%m-%d') as gnfd_de
+              from tb_str_empl a,
+                   tb_str_manage b,
+                   tb_manage_entrps c,
+                   tb_cstmr_group d
+             where a.delete_at = 'N'
+               and b.delete_at = 'N'
+               and c.delete_at = 'N'
+               and c.use_at = 'Y'
+               and d.delete_at = 'N'
+               and d.use_at = 'Y'
+               and c.cg_code = d.cg_code
+               and b.me_code = c.me_code
+               and b.cg_code = c.cg_code
+               and a.sm_code = b.sm_code
+               and a.em_no = #{em_no}
+             order by a.regist_de desc
+        ]]>
+    </select>
+
+    <select id="getEmployeeExcelDown" parameterType="java.util.Map" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select a.em_no, /*사원번호*/
+                   a.cm_code, /*회사코드*/
+                   a.bhf_code, /*지점코드*/
+                   (select t.om_nm
+                      from tb_orgnzt_manage t
+                     where t.om_code = a.bhf_code) as bhf_nm, /*지점명*/
+                   a.team_code, /*팀코드*/
+                   (select t.om_nm
+                      from tb_orgnzt_manage t
+                     where t.om_code = a.team_code) as team_nm, /*팀명*/
+                   a.em_nm, /*사원명*/
+                   a.em_id, /*사원id*/
+                   ifnull(max(d.me_nm), '') as me_nm, /*관리업체명*/
+                   case when max(c.sm_nm) is not null
+                        then concat(' ', max(c.sm_nm))
+                        else ''
+                   end as sm_nm, /*매장명*/
+                   ifnull(max(a.em_ecny_de), '') as em_ecny_de, /*입사일*/
+                   case when max(a.em_ecny_de) is not null
+                        then (
+                              case when length(max(a.em_ecny_de)) = 8
+                                   then date_format(max(a.em_ecny_de), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_ecny_de_nm, /*입사일 FORMATTING*/
+                   ifnull(max(a.em_retire_de), '') as em_retire_de, /*퇴사일*/
+                   case when max(a.em_retire_de) is not null
+                        then (
+                              case when length(max(a.em_retire_de)) = 8
+                                   then date_format(max(a.em_retire_de), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_retire_de_nm, /*퇴사일 FORMATTING*/
+                   ifnull(max(a.em_ampm_at), '') as em_ampm_at, /*근무시간유형(A,P)*/
+                   case when max(a.em_ampm_at) is not null
+                        then (
+                               case when max(a.em_ampm_at) = 'A' then '(오전)'
+                                    when max(a.em_ampm_at) = 'P1' then '(오후1)'
+                                    when max(a.em_ampm_at) = 'P2' then '(오후2)'
+                                    else ''
+                               end
+                             )
+                        else ''
+                   end as em_ampm_at_nm, /*근무시간 FORMATTING*/
+                   ifnull(max(a.em_mbtl_num), '') as em_mbtl_num, /*휴대전화*/
+                   
+                   ifnull(max(a.em_mrnry_de), '') as em_mrnry_de, /*결혼기념일*/
+                   case when max(a.em_mrnry_de) is not null
+                        then (
+                              case when length(max(a.em_mrnry_de)) = 8
+                                   then date_format(max(a.em_mrnry_de), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_mrnry_de_nm, /*결혼기념일 FORMATTING*/
+                   ifnull(max(a.em_trans_fee), 0) as em_trans_fee, /*기준교통비*/
+                   ifnull(max(a.em_mbtl_open_at), 'Y') as em_mbtl_open_at, /*개인연락처 공개여부*/
+                   ifnull(max(a.em_zipcd), '') as em_zipcd, /*우편번호*/
+                   ifnull(max(a.em_adres), '') as em_adres, /*주소*/
+                   ifnull(max(a.em_dtadres), '') as em_dtadres, /*상세주소*/
+                   ifnull(max(a.em_etcadres), '') as em_etcadres, /*기타주소*/
+                   max(a.use_at) as use_at, /*재직여부(Y:재직,N:퇴사)*/
+                   case when max(a.use_at) = 'Y'
+                        then '재직'
+                        else '퇴사'
+                   end as use_at_nm, /*재직여부 FORMATTING*/
+                   a.em_rspofc_code, /*직책코드*/
+                   (select t.c_name
+                      from tb_code t
+                     where t.c_code = a.em_rspofc_code) as em_rspofc_nm, /*직책명*/
+                   a.em_dty_code, /*직무코드*/
+                   (select t.c_name
+                      from tb_code t
+                     where t.c_code = a.em_dty_code) as em_dty_nm, /*직무명*/
+                   ifnull(max(a.em_brthdy), '') as em_brthdy, /*생년월일*/
+                   case when max(a.em_brthdy) is not null
+                        then (
+                              case when length(max(a.em_brthdy)) = 8
+                                   then date_format(max(a.em_brthdy), '%Y-%m-%d')
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_brthdy_nm, /*생년월일 FORMATTING*/
+                   ifnull(max(a.em_cldr), '') as em_cldr, /*달력유형*/
+                   case when max(a.em_cldr) is not null
+                        then (
+                              select ifnull(t.c_name, '')
+                                from tb_code t
+                               where t.c_code = max(a.em_cldr)
+                             )
+                        else ''
+                   end as em_cldr_nm, /*달력유형명*/
+                   ifnull(max(a.em_sexdstn), '') as em_sexdstn, /*성별(M,F)*/
+                   case when max(a.em_sexdstn) is not null
+                        then (
+                              case when max(a.em_sexdstn) = 'M' then '남'
+                                   when max(a.em_sexdstn) = 'F' then '여'
+                                   else ''
+                              end
+                             )
+                        else ''
+                   end as em_sexdstn_nm, /*성별 FORMATTING*/
+                   ifnull(max(a.am_no), 0) as am_no, /*첨부파일고유번호*/
+                   case when max(a.am_no) is not null
+                        then (
+                              select ifnull(u.ai_path, '')
+                                from tb_attach_item u
+                               where u.ai_no = (select ifnull(max(t.ai_no), 0)
+                                                  from tb_attach_item t
+                                                 where t.am_no = max(a.am_no)
+                                                   and t.delete_at = 'N')
+                             )
+                        else ''
+                   end as image_url
+              from tb_empl_manage a
+                   left outer join tb_str_empl b
+                        on a.em_no = b.em_no
+                        and b.delete_at = 'N'
+                   left outer join tb_str_manage c
+                        on b.sm_code = c.sm_code
+                        and c.use_at = 'Y'
+                        and c.delete_at = 'N'
+                   left outer join tb_manage_entrps d
+                        on c.me_code = d.me_code
+                        and c.cg_code = d.cg_code
+                        and d.use_at = 'Y'
+                        and d.delete_at = 'N'
+             where a.em_no != 'superuser'
+               and a.delete_at = 'N'
+        ]]>
+        <if test="em_dty_code!=null and !em_dty_code.equals('')">
+               and a.em_dty_code = #{em_dty_code}
+        </if>
+        <if test="searchCompany!=null and !searchCompany.equals('')">
+               and a.cm_code = #{searchCompany}
+        </if>
+        <if test="searchBranch!=null and !searchBranch.equals('')">
+               and a.bhf_code = #{searchBranch}
+        </if>
+        <if test="searchStoreCode!=null and !searchStoreCode.equals('')">
+               and c.sm_code = #{searchStoreCode}
+        </if>
+        <if test="searchStoreName!=null and !searchStoreName.equals('')">
+               and c.sm_nm like '%${searchStoreName}%'
+        </if>
+        <if test="searchName!=null and !searchName.equals('')">
+               and a.em_nm like '%${searchName}%'
+        </if>
+        <if test="searchId!=null and !searchId.equals('')">
+               and a.em_id like '%${searchId}%'
+        </if>
+        <if test="searchValueFrom!=null and !searchValueFrom.equals('') and searchValueTo!=null and !searchValueTo.equals('')">
+               and a.${searchKey} between replace(#{searchValueFrom}, '-', '') and replace(#{searchValueTo}, '-', '')
+        </if>
+        <if test="searchUseAt!=null and searchUseAt.equals('RETIRE')">
+               and a.use_at = 'N'
+        </if>
+        <if test="searchUseAt!=null and searchUseAt.equals('WORK')">
+               and a.use_at = 'Y'
+        </if>
+        <if test="exceptEmployeeNo!=null and !exceptEmployeeNo.equals('')">
+               and a.em_no != #{exceptEmployeeNo}
+        </if>
+             group by a.em_no, a.cm_code, a.bhf_code, a.team_code, a.em_nm, a.em_id, a.em_password, a.em_rspofc_code, a.em_dty_code
+             order by a.em_nm asc
+    </select>
+
+</mapper>

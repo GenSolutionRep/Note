@@ -1,0 +1,19 @@
+{
+    "menu":[
+        {"menu_id":"10","menu_depth":"1","p_menu_id":"","menu_nm":"활동관리"},
+        {"menu_id":"12","menu_depth":"2","p_menu_id":"10","menu_nm":"고정MD"},
+        {"menu_id":"13","menu_depth":"2","p_menu_id":"10","menu_nm":"순회MD"},
+        {"menu_id":"50","menu_depth":"1","p_menu_id":"","menu_nm":"사원현황"},
+        {"menu_id":"51","menu_depth":"2","p_menu_id":"50","menu_nm":"고정MD"},
+        {"menu_id":"52","menu_depth":"2","p_menu_id":"50","menu_nm":"순회MD"},
+        {"menu_id":"53","menu_depth":"2","p_menu_id":"50","menu_nm":"MD팀장"},
+        {"menu_id":"54","menu_depth":"2","p_menu_id":"50","menu_nm":"관리자"},
+        {"menu_id":"40","menu_depth":"1","p_menu_id":"","menu_nm":"매장정보"},
+        {"menu_id":"60","menu_depth":"1","p_menu_id":"","menu_nm":"커뮤니케이션"},
+        {"menu_id":"61","menu_depth":"2","p_menu_id":"60","menu_nm":"공지사항"},
+        {"menu_id":"62","menu_depth":"2","p_menu_id":"60","menu_nm":"주요행사"},
+        {"menu_id":"63","menu_depth":"2","p_menu_id":"60","menu_nm":"업무지시"},
+        {"menu_id":"64","menu_depth":"2","p_menu_id":"60","menu_nm":"알림메시지"},
+        {"menu_id":"80","menu_depth":"1","p_menu_id":"","menu_nm":"환경설정"}
+    ]
+}

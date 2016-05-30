@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AttachService">
+<!-- 	<select id="fileMasterInsertKey"resultType="String" > -->
+<!-- 		SELECT AM_NO_SEQ.NEXTVAL FROM DUAL -->
+<!-- 	</select>	 -->
+<!-- 	<insert id="fileMasterInsert" parameterType="map" useGeneratedKeys="true"  keyProperty="mseq"> -->
+	<insert id="fileMasterInsert2" parameterType="map">
+<!-- 		INSERT INTO TB_ATTACH_MAIN -->
+<!-- 		(AM_INNB,DELETE_AT,REGIST_MAN,REGIST_DE,UPDT_MAN,UPDE_DE) -->
+<!-- 		VALUES -->
+<!-- 		(AM_INNB,DELETE_AT,REGIST_MAN,REGIST_DE,UPDT_MAN,UPDE_DE) -->
+<!-- 		<selectKey resultType="String" order="AFTER" keyProperty="f_seq"  > -->
+<!-- 		SELECT LAST_INSERT_ID() -->
+<!-- 		</selectKey> -->
+	</insert>
+	<insert id="attachMainInsert" parameterType="map" useGeneratedKeys="true"  keyProperty="am_no">
+		<!-- INSERT INTO TB_ATTACH_MAIN
+		(AM_NO,DELETE_AT,REGIST_MAN,UPDT_MAN,REGIST_DE,UPDE_DE)
+		VALUES
+		(AM_NO_SEQ.NEXTVAL,'N',#{regist_man},#{regist_man},now(),now())
+		<selectKey resultType="String" order="AFTER" keyProperty="am_no"  >
+		SELECT AM_NO_SEQ.CURRVAL FROM DUAL
+		</selectKey> -->
+			INSERT INTO TB_ATTACH_MAIN
+			(DELETE_AT,REGIST_MAN,UPDT_MAN,REGIST_DE,UPDE_DE)
+			VALUES
+			('N',#{regist_man},#{regist_man},now(),now())
+		<selectKey resultType="String" order="AFTER" keyProperty="am_no"  >
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<insert id="attachItemInsert" parameterType="com.vertexid.vo.AttachVo">
+		<!-- INSERT INTO TB_ATTACH_ITEM 
+        (AI_NO, AM_NO, AI_PATH, AI_NM, AI_SIZE, DELETE_AT, REGIST_MAN, UPDT_MAN, REGIST_DE, UPDT_DE)
+        VALUES
+        (AI_NO_SEQ.NEXTVAL, #{am_no}, #{ai_path}, #{ai_nm}, #{ai_size},'N',#{regist_man},#{regist_man},now(),now()) -->
+		INSERT INTO TB_ATTACH_ITEM 
+        (AM_NO, AI_PATH, AI_NM, AI_SIZE, DELETE_AT, REGIST_MAN, UPDT_MAN, REGIST_DE, UPDT_DE)
+        VALUES
+        (#{am_no}, #{ai_path}, #{ai_nm}, #{ai_size},'N',#{regist_man},#{regist_man},now(),now())
+	</insert>
+	<select id="attachItem" parameterType="String" resultType="com.vertexid.vo.AttachVo" >
+		 SELECT * FROM TB_ATTACH_ITEM
+	      WHERE AI_NO = #{ai_no}
+	        AND DELETE_AT = 'N'
+	      ORDER BY REGIST_DE DESC
+    </select>
+    
+    <!-- 2015.12.03 by zzz2613 -->
+	<select id="attachItem_apk" parameterType="String" resultType="com.vertexid.vo.AttachVo" >
+		 SELECT * FROM TB_ATTACH_ITEM
+	      WHERE AI_NO = #{ai_no}
+	      ORDER BY REGIST_DE DESC
+    </select>
+    
+	<select id="attachList" parameterType="int" resultType="com.vertexid.vo.AttachVo" >
+		SELECT * FROM TB_ATTACH_ITEM
+	      WHERE AM_NO = #{am_no}
+	        AND DELETE_AT = 'N'
+	      ORDER BY REGIST_DE DESC
+    </select>
+	<delete id="attachDelete" parameterType="int" >
+		UPDATE TB_ATTACH_ITEM
+		   SET DELETE_AT =  'Y'			 
+		 WHERE AI_NO = #{ai_no}
+	</delete>
+	<update id="attachMainDelete" parameterType="int" >
+		UPDATE TB_ATTACH_ITEM
+		   SET DELETE_AT = 'Y'			 
+		 WHERE AM_NO = #{am_no}
+	</update>
+</mapper>

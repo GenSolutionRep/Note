@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="login">
+
+    <select id="getSystemDate" parameterType="com.dasa.login.vo.LoginVo" resultType="com.dasa.login.vo.LoginVo">
+        <![CDATA[
+            select date_format(now(), '${date_format}') as sys_de
+              from dual
+        ]]>
+    </select>
+
+    <select id="checkLogin" parameterType="com.dasa.login.vo.LoginVo" resultType="com.dasa.login.vo.LoginVo">
+        <![CDATA[
+            select case when exists (
+                                     select 'X'
+                                       from tb_empl_manage a
+                                      where a.use_at = 'Y'
+                                        and a.delete_at = 'N'
+                                        and a.em_id = #{em_id}
+                                    )
+                        then 'Y'
+                        else 'N'
+                   end as check_id,
+                   case when exists (
+                                     select 'X'
+                                       from tb_empl_manage a
+                                      where a.use_at = 'Y'
+                                        and a.delete_at = 'N'
+                                        and a.em_id = #{em_id}
+                                        and a.em_password = #{em_password}
+                                    )
+                        then 'Y'
+                        else 'N'
+                   end as check_password,
+                   case when exists (
+                                     select 'X'
+                                       from tb_empl_manage a
+                                      where a.use_at = 'Y'
+                                        and a.delete_at = 'N'
+                                        and a.em_id = #{em_id}
+                                        and a.em_password = #{em_password}
+                                        and a.em_unique_id is not null
+                                        and a.em_certify_at = 'Y'
+                                    )
+                        then 'Y'
+                        else 'N'
+                   end as check_unique_id,
+                   (
+                    select a.em_unique_id
+                      from tb_empl_manage a
+                     where a.use_at = 'Y'
+                       and a.delete_at = 'N'
+                       and a.em_id = #{em_id}
+                       and a.em_password = #{em_password}
+                       and a.em_unique_id is not null
+                       and a.em_certify_at = 'Y'
+                   ) as em_unique_id,
+                   (
+                    select b.c_ext1
+                      from tb_empl_manage a,
+                           tb_code b
+                     where a.em_dty_code = b.c_code
+                       and a.use_at = 'Y'
+                       and a.delete_at = 'N'
+                       and a.em_id = #{em_id}
+                       and a.em_password = #{em_password}
+                   ) as auth_flag
+              from dual
+        ]]>
+    </select>
+
+    <update id="setUniqueId" parameterType="com.dasa.login.vo.LoginVo">
+        <![CDATA[
+            update tb_empl_manage a
+               set a.em_unique_id = #{em_unique_id}
+                 , a.em_certify_at = 'Y'
+             where a.em_id = #{em_id}
+               and a.em_password =  #{em_password}
+        ]]>
+    </update>
+
+    <update id="setPushId" parameterType="com.dasa.login.vo.LoginVo">
+        <![CDATA[
+            update tb_empl_manage a
+               set a.em_push_id = #{em_push_id}
+                 , a.em_device_type = #{em_device_type}
+             where a.em_id = #{em_id}
+               and a.em_password =  #{em_password}
+        ]]>
+    </update>
+
+    <select id="login" parameterType="com.dasa.login.vo.LoginVo" resultType="com.dasa.login.vo.LoginVo">
+            select a.em_no,
+		    <choose>
+		        <when test="flag.equals('WEB')">
+                   if(#{auth_flag}='0', #{cm_code}, a.cm_code) as cm_code,
+                   if(#{auth_flag}='0'
+                      ,
+                       (select t.cm_nm
+                          from tb_cmpny_manage t
+                         where t.cm_code = #{cm_code})
+                      ,
+                   (select t.cm_nm
+                      from tb_cmpny_manage t
+                         where t.cm_code = a.cm_code)
+                     ) as cm_nm,
+		        </when>
+		        <when test="flag.equals('MOBILE')">
+                   a.cm_code,
+                   (select t.cm_nm
+                      from tb_cmpny_manage t
+                     where t.cm_code = a.cm_code) as cm_nm,
+		        </when>
+		    </choose>
+                   a.bhf_code,
+                   (select t.om_nm
+                      from tb_orgnzt_manage t
+                     where t.om_code = a.bhf_code
+                       and t.use_at = 'Y'
+                   ) as bhf_nm,
+                   a.team_code,
+                   (select t.om_nm
+                      from tb_orgnzt_manage t
+                     where t.om_code = a.team_code
+                       and t.use_at = 'Y'
+                   ) as team_nm,
+                   (select t.em_no
+                      from tb_empl_manage t
+                     where t.team_code = a.team_code
+                       and t.em_dty_code = '0000000008'
+                       and t.use_at = 'Y'
+                   ) as timhdr_em_no,
+                   (select t.em_nm
+                      from tb_empl_manage t
+                     where t.team_code = a.team_code
+                       and t.em_dty_code = '0000000008'
+                       and t.use_at = 'Y'
+                   ) as timhdr_em_nm,
+				   (select ifnull(t.om_la, '')
+				      from tb_orgnzt_manage t
+				     where t.om_code = a.team_code
+				       and t.use_at = 'Y'
+				   ) as timhdr_om_la,
+				   (select ifnull(t.om_lo, '')
+				      from tb_orgnzt_manage t
+				     where t.om_code = a.team_code
+				       and t.use_at = 'Y'
+				   ) as timhdr_om_lo,
+                   a.em_nm,
+                   a.em_id,
+                   a.em_password,
+                   a.em_rspofc_code,
+                   (select t.c_name
+                      from tb_code t
+                     where t.c_code = a.em_rspofc_code ) as em_rspofc_nm,
+                   a.em_dty_code,
+                   (select t.c_name
+                      from tb_code t
+                     where t.c_code = a.em_dty_code ) as em_dty_nm,
+                   a.em_mbtl_open_at,
+                   case when a.em_no = 'superuser'
+                        then 0
+                        else (select cast(t.c_ext1 as signed)
+                                from tb_code t
+                               where t.c_code = a.em_dty_code)
+                   end as auth_flag
+              from tb_empl_manage a
+             where 1=1
+               and a.use_at = 'Y'
+               and a.delete_at = 'N'
+        <if test="em_no != null and !em_no.equals('')">
+               and a.em_no = #{em_no}
+        </if>
+        <if test="em_id != null and !em_id.equals('')">
+               and a.em_id = #{em_id}
+        </if>
+        <if test="em_password != null and !em_password.equals('')">
+               and a.em_password =  #{em_password}
+        </if>
+        <if test="em_unique_id != null and !em_unique_id.equals('')">
+               and a.em_unique_id = #{em_unique_id}
+        </if>
+    </select>
+
+</mapper>

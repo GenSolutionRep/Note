@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="displaybig">
+
+	
+	<delete id="displayDeleteListArr"  parameterType="String" >
+<!-- 		delete from tb_display_arr where insert_de = #{base_de} -->
+		delete from tb_display_arr 
+	</delete>
+	<delete id="displayDeleteListBig"  parameterType="String" >
+<!-- 		delete from tb_display_big where insert_de = #{base_de} -->
+		delete from tb_display_big
+	</delete>
+	<delete id="displayDeleteListPd"  parameterType="String" >
+<!-- 		delete from tb_display_pd where insert_de = #{base_de} -->
+		delete from tb_display_pd
+	</delete>
+	<delete id="displayDeleteListTrt"  parameterType="String" >
+		delete from tb_display_trt
+<!-- 		delete from tb_display_trt where insert_de = #{base_de} -->
+	</delete>
+	
+	<!-- ========================================신규 진열률 배치 통합=============================================== -->
+	<update id="displayInsertListArr" parameterType="com.dasa.analysis.vo.DisPlayVo"  >
+		INSERT INTO
+        tb_display_arr (
+           da_date
+         , cm_code 
+		 , om_code 
+		 , em_no
+		 , em_nm
+         , cg_code 
+    	 , cg_nm
+    	 , me_code
+  		 , me_nm 
+    	 , sm_code     
+    	 , sm_nm     
+    	 , sm_odr
+    	 , sm_area1
+    	 , sm_area2
+    	 , base_de
+    	 , insert_de
+    	 <foreach collection="prdArr" item="item">
+		 , `${item.colunm_id}_${item.group_id}_${item.item_id}`
+	    </foreach>
+        )
+		SELECT date_format(now(),'%Y-%m-%d') AS da_date
+			 , DAA.cm_code 
+			 , DAA.om_code 
+			 , DAA.em_no			  
+			 , DAA.em_nm			  
+			 , DAA.cg_code 
+	    	 , DAA.cg_nm
+	    	 , DAA.me_code
+	  		 , DAA.me_nm 
+	    	 , DAA.sm_code     
+	    	 , DAA.sm_nm     
+	    	 , DAA.c_name AS sm_odr
+	    	 , DAA.sm_area1
+	    	 , DAA.sm_area2
+	    	 , DAB.base_de
+	    	 , '${base_de}' AS insert_de
+	    	 <foreach collection="prdArr" item="item">
+			 , DAB.`${item.colunm_id}_${item.group_id}_${item.item_id}`
+		    </foreach>
+	  	  FROM ( SELECT OM.cm_code
+				      , SM.om_code
+				      , SE.em_no
+				      , ifnull(EM.em_nm,'미배정') AS em_nm
+				      ,	CG.cg_nm 
+				      , CG.cg_code 
+				      , ME.me_nm 
+				      , ME.me_code
+				      , SM.sm_nm 
+				      , SM.sm_code
+				      , C.c_name
+				      , SM.sm_area1
+				      , SM.sm_area2
+				   FROM tb_str_manage SM
+				   LEFT OUTER JOIN tb_cstmr_group CG
+				     ON SM.cg_code = CG.cg_code
+				    AND CG.use_at = 'Y'
+				   LEFT OUTER JOIN tb_orgnzt_manage OM
+				     ON SM.om_code = OM.om_code
+				    AND OM.use_at = 'Y'
+           			AND OM.delete_at = 'N'
+				   LEFT OUTER JOIN tb_manage_entrps ME
+				     ON SM.me_code = ME.me_code
+		            AND SM.cg_code = ME.cg_code
+		            AND ME.delete_at = 'N'
+		            AND ME.use_at = 'Y'
+				   LEFT OUTER JOIN tb_code C
+				     ON SM.sm_odr = C.c_code
+		           LEFT OUTER  JOIN tb_str_empl SE
+		             ON SM.sm_code = SE.sm_code
+<!-- 		            AND SE.om_code = #{om_code} -->
+		            AND SE.em_sub_at = 'N'
+		            AND SE.delete_at='N'           
+		           LEFT OUTER JOIN tb_empl_manage EM
+				     ON SE.em_no = EM.em_no
+		            AND EM.delete_at = 'N'
+		          WHERE SM.sm_oper_at = 'Y'
+  					AND SM.use_at = 'Y'
+  					AND SM.delete_at = 'N'
+<!--   					AND SM.sm_cvscafe_at = 'N' -->
+<!--   				   AND SE.om_code = #{om_code} -->
+				   ) DAA
+				  LEFT OUTER JOIN(SELECT DA.sm_code
+							      , DA.cm_code
+							      , DA.base_de
+							      , DA.om_code
+							      , DA.dp_innb
+								<foreach collection="prdArr" item="item">
+								  , MAX(
+								  	IF(DA.group_id = '${item.group_nm}_${item.item_nm}'
+								  		, IF('ent' = '${item.colunm_id}', DA.cval
+								  		, IF('rate' = '${item.colunm_id}', '', '')
+								  		), '')
+								    ) AS "${item.colunm_id}_${item.group_id}_${item.item_id}"
+							    </foreach>
+							   FROM (SELECT DRAPI.drap_oi_code_nm AS group_name
+					              , DRAPI.oi_code_nm AS item_name 
+					              , CONCAT(DRAPI.drap_oi_code_nm ,'_', DRAPI.oi_code_nm) AS group_id
+					              , ifnull(DRAPI.drapi_cur_value,'')  AS cval
+					              , ifnull(DRAP.drap_cur_rate,'' ) AS rval
+					              , DRAPI.sm_code
+					              , DRAPI.cm_code
+					              , DRAPI.base_de
+					              , DRAPI.om_code
+					              , DP.dp_innb					              
+					           FROM tb_diary_rnd_arr_prdlst_item DRAPI
+					           LEFT OUTER JOIN tb_diary_rnd_arr_prdlst DRAP
+					             ON DRAPI.drap_innb = DRAP.drap_innb
+<!-- 					            AND DRAP.om_code = '${om_code}' -->
+					          INNER JOIN tb_display_prdlst DP
+					             ON DRAPI.drap_oi_code_nm = DP.oi_nick_name
+					            AND DP.d_innb = '${d_innb}'
+					            AND DP.collect_at = 'Y'
+					          INNER JOIN tb_display_prdlst_item DPI
+					             ON DRAPI.oi_code_nm = DPI.oi_nick_name 
+					            AND DPI.collect_at = 'Y'
+					            AND DP.dp_innb = DPI.dp_innb
+					          WHERE DRAPI.dra_innb IN (SELECT MAX(TRG.dra_innb) FROM tb_diary_rnd_arr TRG  WHERE TRG.regist_man = DRAPI.regist_man and TRG.sm_code = DRAPI.sm_code)
+<!-- 					            AND DRAP.om_code = '${om_code}' -->
+					            AND DRAPI.drapi_cur_value is not null
+					          UNION All
+					         SELECT DFAPI.dfap_oi_code_nm AS group_name
+					              , DFAPI.oi_code_nm AS item_name 
+					              , CONCAT(DFAPI.dfap_oi_code_nm ,'_', DFAPI.oi_code_nm) AS group_id
+					              , DFAPI.dfapi_cur_value AS cval
+					              , DFAP.dfap_cur_rate  AS rval
+					              , DFAPI.sm_code
+					              , DFAPI.cm_code 
+					              , DFAPI.base_de
+					              , DFAPI.om_code
+					              , DP.dp_innb
+					           FROM tb_diary_fix_arr_prdlst_item DFAPI
+					           LEFT OUTER JOIN tb_diary_fix_arr_prdlst DFAP
+					             ON DFAPI.dfap_innb = DFAP.dfap_innb
+<!-- 					            AND DFAP.om_code = '${om_code}' -->
+					          INNER JOIN tb_display_prdlst DP
+					             ON DFAPI.dfap_oi_code_nm = DP.oi_nick_name
+					            AND DP.d_innb = '${d_innb}'
+					            AND DP.collect_at = 'Y'
+					          INNER JOIN tb_display_prdlst_item DPI
+					             ON DFAPI.oi_code_nm = DPI.oi_nick_name 
+					            AND DPI.collect_at = 'Y'
+					          WHERE DFAPI.dfa_innb IN (SELECT MAX(TRG.dfa_innb) FROM tb_diary_fix_arr TRG  WHERE TRG.regist_man = DFAPI.regist_man and TRG.sm_code = DFAPI.sm_code)
+<!-- 					            AND DFAPI.om_code = '${om_code}' -->
+					            AND DFAPI.dfapi_cur_value is not null
+					 		) DA
+					   GROUP BY DA.sm_code
+				)DAB
+		ON DAA.sm_code = DAB.sm_code
+		GROUP BY DAA.sm_code
+		ORDER BY DAA.sm_code, DAB.dp_innb
+	</update>
+	<!-- ========================================보조진열현황 배치 =============================================== -->
+	<update id="displayInsertListBig" parameterType="com.dasa.analysis.vo.DisPlayVo"  >
+		INSERT INTO
+        tb_display_big (
+           da_date
+         , cm_code 
+		 , om_code 
+		 , em_no
+		 , em_nm
+         , cg_code 
+    	 , cg_nm
+    	 , me_code
+  		 , me_nm 
+    	 , sm_code     
+    	 , sm_nm     
+    	 , sm_odr
+    	 , sm_area1
+    	 , sm_area2
+    	 , base_de
+    	 , insert_de
+    	 <foreach collection="prdArr" item="item">
+		 , `${item.colunm_id}_${item.group_id}_${item.item_id}`
+	    </foreach>
+        )
+		SELECT date_format(now(),'%Y-%m-%d') AS da_date
+			 , DAA.cm_code 
+			 , DAA.om_code 
+			 , DAA.em_no			  
+			 , DAA.em_nm			  
+			 , DAA.cg_code 
+	    	 , DAA.cg_nm
+	    	 , DAA.me_code
+	  		 , DAA.me_nm 
+	    	 , DAA.sm_code     
+	    	 , DAA.sm_nm  
+	    	 , DAA.c_name AS sm_odr
+	    	 , DAA.sm_area1
+	    	 , DAA.sm_area2
+	    	 , DAB.base_de
+	    	 , '${base_de}' AS insert_de
+	    	 <foreach collection="prdArr" item="item">
+			 , DAB.`${item.colunm_id}_${item.group_id}_${item.item_id}`
+		    </foreach>
+	  	  FROM ( SELECT OM.cm_code
+				      , SM.om_code
+				      , SE.em_no
+				      , ifnull(EM.em_nm,'미배정') AS em_nm
+				      ,	CG.cg_nm 
+				      , CG.cg_code 
+				      , ME.me_nm 
+				      , ME.me_code
+				      , SM.sm_nm 
+				      , SM.sm_code
+				      , C.c_name
+				      , SM.sm_area1
+				      , SM.sm_area2
+				   FROM tb_str_manage SM
+				   LEFT OUTER JOIN tb_cstmr_group CG
+				     ON SM.cg_code = CG.cg_code
+				    AND CG.use_at = 'Y'
+				   LEFT OUTER JOIN tb_orgnzt_manage OM
+				     ON SM.om_code = OM.om_code
+				    AND OM.use_at = 'Y'
+           			AND OM.delete_at = 'N'
+				   LEFT OUTER JOIN tb_manage_entrps ME
+				     ON SM.me_code = ME.me_code
+		            AND SM.cg_code = ME.cg_code
+		            AND ME.delete_at = 'N'
+		            AND ME.use_at = 'Y'
+				   LEFT OUTER JOIN tb_code C
+				     ON SM.sm_odr = C.c_code
+		           LEFT OUTER  JOIN tb_str_empl SE
+		             ON SM.sm_code = SE.sm_code
+<!-- 		            AND SE.om_code = #{om_code} -->
+		            AND SE.em_sub_at = 'N'
+		            AND SE.delete_at='N'           
+		           LEFT OUTER JOIN tb_empl_manage EM
+				     ON SE.em_no = EM.em_no
+		            AND EM.delete_at = 'N'
+		          WHERE SM.sm_oper_at = 'Y'
+  					AND SM.use_at = 'Y'
+  					AND SM.delete_at = 'N'
+<!--   					AND SM.sm_cvscafe_at = 'N' -->
+<!--   				    AND SE.om_code = #{om_code} -->
+				   ) DAA
+				  LEFT OUTER JOIN(SELECT DA.sm_code
+							      , DA.cm_code
+							      , DA.base_de
+							      , DA.om_code
+							      , DA.dp_innb
+								<foreach collection="prdArr" item="item">
+								  , MAX(
+								  	IF(DA.group_id = '${item.group_nm}_${item.item_nm}' ,  DA.cval , '')) AS "${item.colunm_id}_${item.group_id}_${item.item_id}"
+							    </foreach>
+							   FROM (SELECT DRBPI.drbp_oi_code_nm AS group_name
+					              , DRBPI.oi_code_nm AS item_name 
+					              , CONCAT(DRBPI.drbp_oi_code_nm ,'_', DRBPI.oi_code_nm) AS group_id
+					              , ifnull(DRBPI.drbpi_cur_value,'')  AS cval
+					              , DRBPI.sm_code
+					              , DRBPI.cm_code
+					              , DRBPI.base_de
+					              , DRBPI.om_code
+					              , DP.dp_innb					              
+					           FROM tb_diary_rnd_big_prdlst_item DRBPI
+					           LEFT OUTER JOIN tb_diary_rnd_big_prdlst DRBP
+					             ON DRBPI.drbp_innb = DRBP.drbp_innb
+<!-- 					            AND DRBP.om_code = '${om_code}' -->
+					          INNER JOIN tb_display_prdlst DP
+					             ON DRBPI.drbp_oi_code_nm = DP.oi_nick_name
+					            AND DP.d_innb = '${d_innb}'
+					            AND DP.collect_at = 'Y'
+					          INNER JOIN tb_display_prdlst_item DPI
+					             ON DRBPI.oi_code_nm = DPI.oi_nick_name 
+					            AND DPI.collect_at = 'Y'
+					          WHERE DRBPI.drb_innb IN (SELECT MAX(TRG.drb_innb) FROM tb_diary_rnd_big TRG  WHERE TRG.regist_man = DRBPI.regist_man and TRG.sm_code = DRBPI.sm_code)
+<!-- 					            AND DRBPI.om_code = '${om_code}' -->
+					            AND DRBPI.drbpi_cur_value is not null
+					          UNION All
+					         SELECT DFBPI.dfbp_oi_code_nm AS group_name
+					              , DFBPI.oi_code_nm AS item_name 
+					              , CONCAT(DFBPI.dfbp_oi_code_nm ,'_', DFBPI.oi_code_nm) AS group_id
+					              , DFBPI.dfbpi_cur_value AS cval
+					              , DFBPI.sm_code
+					              , DFBPI.cm_code 
+					              , DFBPI.base_de
+					              , DFBPI.om_code
+					              , DP.dp_innb
+					           FROM tb_diary_fix_big_prdlst_item DFBPI
+					           LEFT OUTER JOIN tb_diary_fix_big_prdlst DFAP
+					             ON DFBPI.dfbp_innb = DFAP.dfbp_innb
+<!-- 					            AND DFAP.om_code = '${om_code}' -->
+					          INNER JOIN tb_display_prdlst DP
+					             ON DFBPI.dfbp_oi_code_nm = DP.oi_nick_name
+					            AND DP.d_innb = '${d_innb}'
+					            AND DP.collect_at = 'Y'
+					          INNER JOIN tb_display_prdlst_item DPI
+					             ON DFBPI.oi_code_nm = DPI.oi_nick_name 
+					            AND DPI.collect_at = 'Y'
+							  WHERE DFBPI.dfb_innb IN (SELECT MAX(TRG.dfb_innb) FROM tb_diary_fix_big TRG  WHERE TRG.regist_man = DFBPI.regist_man and TRG.sm_code = DFBPI.sm_code)
+<!-- 					            AND DFBPI.om_code = '${om_code}' -->
+					            AND DFBPI.dfbpi_cur_value is not null
+					 		) DA
+					   GROUP BY DA.sm_code
+				)DAB
+		ON DAA.sm_code = DAB.sm_code
+		GROUP BY DAA.sm_code
+		ORDER BY DAA.sm_code, DAB.dp_innb
+	</update>
+	<!-- ========================================보조진열현황 배치 =============================================== -->
+	<update id="displayInsertListPd" parameterType="com.dasa.analysis.vo.DisPlayVo"  >
+		INSERT INTO
+        tb_display_pd (
+           da_date
+         , cm_code 
+		 , om_code 
+		 , em_no
+		 , em_nm
+         , cg_code 
+    	 , cg_nm
+    	 , me_code
+  		 , me_nm 
+    	 , sm_code     
+    	 , sm_nm     
+    	 , sm_odr
+    	 , sm_area1
+    	 , sm_area2
+    	 , base_de
+    	 , insert_de
+    	 <foreach collection="prdArr" item="item">
+		 , `${item.colunm_id}_${item.group_id}_${item.item_id}`
+	    </foreach>
+        )
+		SELECT date_format(now(),'%Y-%m-%d') AS da_date
+			 , DAA.cm_code 
+			 , DAA.om_code 
+			 , DAA.em_no			  
+			 , DAA.em_nm			  
+			 , DAA.cg_code 
+	    	 , DAA.cg_nm
+	    	 , DAA.me_code
+	  		 , DAA.me_nm 
+	    	 , DAA.sm_code     
+	    	 , DAA.sm_nm  
+	    	 , DAA.c_name AS sm_odr
+	    	 , DAA.sm_area1
+	    	 , DAA.sm_area2
+	    	 , DAB.base_de
+	    	 , '${base_de}' AS insert_de
+	    	 <foreach collection="prdArr" item="item">
+			 , DAB.`${item.colunm_id}_${item.group_id}_${item.item_id}`
+		    </foreach>
+	  	  FROM ( SELECT OM.cm_code
+				      , SM.om_code
+				      , SE.em_no
+				      , ifnull(EM.em_nm,'미배정') AS em_nm
+				      ,	CG.cg_nm 
+				      , CG.cg_code 
+				      , ME.me_nm 
+				      , ME.me_code
+				      , SM.sm_nm 
+				      , SM.sm_code
+				      , C.c_name
+				      , SM.sm_area1
+				      , SM.sm_area2
+				   FROM tb_str_manage SM
+				   LEFT OUTER JOIN tb_cstmr_group CG
+				     ON SM.cg_code = CG.cg_code
+				    AND CG.use_at = 'Y'
+				   LEFT OUTER JOIN tb_orgnzt_manage OM
+				     ON SM.om_code = OM.om_code
+				    AND OM.use_at = 'Y'
+           			AND OM.delete_at = 'N'
+				   LEFT OUTER JOIN tb_manage_entrps ME
+				     ON SM.me_code = ME.me_code
+		            AND SM.cg_code = ME.cg_code
+		            AND ME.delete_at = 'N'
+		            AND ME.use_at = 'Y'
+				   LEFT OUTER JOIN tb_code C
+				     ON SM.sm_odr = C.c_code
+		           LEFT OUTER  JOIN tb_str_empl SE
+		             ON SM.sm_code = SE.sm_code
+<!-- 		            AND SE.om_code = #{om_code} -->
+		            AND SE.em_sub_at = 'N'
+		            AND SE.delete_at='N'           
+		           LEFT OUTER JOIN tb_empl_manage EM
+				     ON SE.em_no = EM.em_no
+		            AND EM.delete_at = 'N'
+		          WHERE SM.sm_oper_at = 'Y'
+  					AND SM.use_at = 'Y'
+  					AND SM.delete_at = 'N'
+<!--   					AND SM.sm_cvscafe_at = 'N' -->
+<!--   				    AND SE.om_code = #{om_code}	 -->
+				   ) DAA
+				  LEFT OUTER JOIN(SELECT DA.sm_code
+							      , DA.cm_code
+							      , DA.base_de
+							      , DA.om_code
+							      , DA.dp_innb
+								<foreach collection="prdArr" item="item">
+								  , MAX(
+								  	IF(DA.group_id = '${item.group_nm}_${item.item_nm}' ,  DA.cval , '')) AS "${item.colunm_id}_${item.group_id}_${item.item_id}"
+							    </foreach>
+							   FROM (
+						         SELECT DRPPI.drpp_oi_code_nm AS group_name
+						              , DRPPI.oi_code_nm AS item_name 
+						              , CONCAT(DRPPI.drpp_oi_code_nm ,'_', DRPPI.oi_code_nm) AS group_id
+						              , DRPPI.drppi_cur_value AS cval
+						              , DRPPI.sm_code
+						              , DRPPI.cm_code 
+						              , DRPPI.base_de
+						              , DRPPI.om_code
+						              , DP.dp_innb
+						           FROM tb_diary_rnd_pd_prdlst_item DRPPI
+						           LEFT OUTER JOIN tb_diary_rnd_pd_prdlst DRPP
+						             ON DRPPI.drpp_innb = DRPP.drpp_innb
+<!-- 						            AND DRPP.om_code = '${om_code}' -->
+						          INNER JOIN tb_display_prdlst DP
+						             ON DRPPI.drpp_oi_code_nm = DP.oi_nick_name
+						            AND DP.d_innb = '${d_innb}'
+						            AND DP.collect_at = 'Y'
+						          INNER JOIN tb_display_prdlst_item DPI
+						             ON DRPPI.oi_code_nm = DPI.oi_nick_name 
+						            AND DPI.collect_at = 'Y'
+						          WHERE DRPPI.drp_innb IN (SELECT MAX(TRG.drp_innb) FROM tb_diary_rnd_pd TRG  WHERE TRG.regist_man = DRPPI.regist_man and TRG.sm_code = DRPPI.sm_code)
+<!-- 						            AND DRPPI.om_code = '${om_code}' -->
+						            AND DRPPI.drppi_cur_value is not null
+						         UNION All
+						         SELECT DFPPI.dfpp_oi_code_nm AS group_name
+						              , DFPPI.oi_code_nm AS item_name 
+						              , CONCAT(DFPPI.dfpp_oi_code_nm ,'_', DFPPI.oi_code_nm) AS group_id
+						              , DFPPI.dfppi_cur_value AS cval
+						              , DFPPI.sm_code
+						              , DFPPI.cm_code 
+						              , DFPPI.base_de
+						              , DFPPI.om_code
+						              , DP.dp_innb
+						           FROM tb_diary_fix_pd_prdlst_item DFPPI
+						           LEFT OUTER JOIN tb_diary_fix_pd_prdlst DFPP
+						             ON DFPPI.dfpp_innb = DFPP.dfpp_innb
+<!-- 						            AND DFPP.om_code = '${om_code}' -->
+						          INNER JOIN tb_display_prdlst DP
+						             ON DFPPI.dfpp_oi_code_nm = DP.oi_nick_name
+						            AND DP.d_innb = '${d_innb}'
+						            AND DP.collect_at = 'Y'
+						          INNER JOIN tb_display_prdlst_item DPI
+						             ON DFPPI.oi_code_nm = DPI.oi_nick_name 
+						            AND DPI.collect_at = 'Y'
+						          WHERE DFPPI.dfp_innb IN (SELECT MAX(TRG.dfp_innb) FROM tb_diary_fix_pd TRG  WHERE TRG.regist_man = DFPPI.regist_man and TRG.sm_code = DFPPI.sm_code)
+<!-- 						            AND DFPPI.om_code = '${om_code}' -->
+						            AND DFPPI.dfppi_cur_value is not null
+					 		) DA
+					   GROUP BY DA.sm_code
+				)DAB
+		ON DAA.sm_code = DAB.sm_code
+		GROUP BY DAA.sm_code
+		ORDER BY DAA.sm_code, DAB.dp_innb
+	</update>
+	
+	<update id="displayInsertListTrt" parameterType="com.dasa.analysis.vo.DisPlayVo"  >
+		INSERT INTO
+        tb_display_trt (
+           da_date
+         , cm_code 
+		 , om_code 
+		 , em_no
+		 , em_nm
+         , cg_code 
+    	 , cg_nm
+    	 , me_code
+  		 , me_nm 
+    	 , sm_code     
+    	 , sm_nm     
+    	 , sm_odr
+    	 , sm_area1
+    	 , sm_area2
+    	 , base_de
+    	 , insert_de 
+    	 <foreach collection="prdArr" item="item">
+		 , `${item.colunm_id}_${item.group_id}`
+	    </foreach>
+        )
+		SELECT date_format(now(),'%Y-%m-%d') AS da_date
+			 , DAA.cm_code 
+			 , DAA.om_code 
+			 , DAA.em_no			  
+			 , DAA.em_nm			  
+			 , DAA.cg_code 
+	    	 , DAA.cg_nm
+	    	 , DAA.me_code
+	  		 , DAA.me_nm 
+	    	 , DAA.sm_code     
+	    	 , DAA.sm_nm  
+	    	 , DAA.c_name AS sm_odr
+	    	 , DAA.sm_area1
+	    	 , DAA.sm_area2
+	    	 , DAB.base_de
+	    	 , '${base_de}' AS insert_de
+	    	 <foreach collection="prdArr" item="item">
+			 , DAB.`${item.colunm_id}_${item.group_id}`
+		    </foreach>
+	  	  FROM ( SELECT OM.cm_code
+				      , SM.om_code
+				      , SE.em_no
+				      , ifnull(EM.em_nm,'미배정') AS em_nm
+				      ,	CG.cg_nm 
+				      , CG.cg_code 
+				      , ME.me_nm 
+				      , ME.me_code
+				      , SM.sm_nm 
+				      , SM.sm_code
+				      , C.c_name
+				      , SM.sm_area1
+				      , SM.sm_area2
+				   FROM tb_str_manage SM
+				   LEFT OUTER JOIN tb_cstmr_group CG
+				     ON SM.cg_code = CG.cg_code
+				    AND CG.use_at = 'Y'
+				   LEFT OUTER JOIN tb_orgnzt_manage OM
+				     ON SM.om_code = OM.om_code
+				    AND OM.use_at = 'Y'
+           			AND OM.delete_at = 'N'
+				   LEFT OUTER JOIN tb_manage_entrps ME
+				     ON SM.me_code = ME.me_code
+		            AND SM.cg_code = ME.cg_code
+		            AND ME.delete_at = 'N'
+		            AND ME.use_at = 'Y'
+				   LEFT OUTER JOIN tb_code C
+				     ON SM.sm_odr = C.c_code
+		           LEFT OUTER  JOIN tb_str_empl SE
+		             ON SM.sm_code = SE.sm_code
+<!-- 		            AND SE.om_code = #{om_code} -->
+		            AND SE.em_sub_at = 'N'
+		            AND SE.delete_at='N'           
+		           LEFT OUTER JOIN tb_empl_manage EM
+				     ON SE.em_no = EM.em_no
+		            AND EM.delete_at = 'N'
+		          WHERE SM.sm_oper_at = 'Y'
+  					AND SM.use_at = 'Y'
+  					AND SM.delete_at = 'N'
+<!--   					AND SM.sm_cvscafe_at = 'N' -->
+<!--   					AND SE.om_code = #{om_code} -->
+				   ) DAA
+				  LEFT OUTER JOIN(SELECT DA.sm_code
+							      , DA.cm_code
+							      , DA.base_de
+							      , DA.om_code
+							      , DA.dp_innb
+								<foreach collection="prdArr" item="item">
+								  , MAX( IF(DA.group_id = '${item.group_nm}' AND DA.cval='Y' , '1', '0')) AS "${item.colunm_id}_${item.group_id}"
+							    </foreach>
+							   FROM (
+							 SELECT DRTP.pm_code_nm AS group_name
+							     , DRTP.pm_code_nm AS group_id
+							     , DRTP.trtmnt_at AS cval
+							     , DRTP.sm_code
+							     , DRTP.cm_code 
+							     , DRTP.base_de
+							     , DRTP.om_code
+							     , DP.dp_innb
+							  FROM tb_diary_rnd_trt_prdlst DRTP
+							  LEFT OUTER JOIN tb_diary_rnd_trt DRT
+							    ON DRTP.drt_innb = DRT.drt_innb
+<!-- 							   AND DRT.om_code = '${om_code}' -->
+							 INNER JOIN tb_display_prdlst DP
+							    ON DRTP.pm_code_nm = DP.oi_nick_name
+							   AND DP.d_innb = '5'
+							   AND DP.collect_at = 'Y'
+							 WHERE DRTP.drt_innb IN (SELECT MAX(TRG.drt_innb) FROM tb_diary_rnd_trt TRG  WHERE TRG.regist_man = DRTP.regist_man and TRG.sm_code = DRTP.sm_code)
+							UNION All
+							SELECT DFTP.pm_code_nm AS group_name
+							     , DFTP.pm_code AS group_id
+							     , DFTP.trtmnt_at AS cval
+							     , DFTP.sm_code
+							     , DFTP.cm_code 
+							     , DFTP.base_de
+							     , DFTP.om_code
+							     , DP.dp_innb
+							  FROM tb_diary_fix_trt_prdlst DFTP
+							  LEFT OUTER JOIN tb_diary_fix_trt DFT
+							    ON DFTP.dft_innb = DFT.dft_innb
+<!-- 							   AND DFT.om_code = '${om_code}' -->
+							 INNER JOIN tb_display_prdlst DP
+							    ON DFTP.pm_code_nm = DP.oi_nick_name
+							   AND DP.d_innb = '5'
+							   AND DP.collect_at = 'Y'
+							 WHERE DFTP.dft_innb IN (SELECT MAX(TRG.dft_innb) FROM tb_diary_fix_trt TRG  WHERE TRG.regist_man = DFTP.regist_man and TRG.sm_code = DFTP.sm_code)
+					 		) DA
+					   GROUP BY DA.sm_code
+				)DAB
+		ON DAA.sm_code = DAB.sm_code
+		GROUP BY DAA.sm_code
+		ORDER BY DAA.sm_code, DAB.dp_innb
+	</update>
+</mapper>

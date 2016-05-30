@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd" >
+<properties>
+
+<!--개발서버 시작-->
+    <entry key="host_name">was1</entry>
+    <entry key="apns_host">gateway.push.apple.com</entry>
+    <entry key="apns_port">2195</entry>
+    <entry key="apns_path">/home/dasa/www/properties/iphone_rel.p12</entry>
+    <entry key="apns_pw">vertexid</entry>
+    <entry key="db_driver">net.sf.log4jdbc.DriverSpy</entry>
+    <entry key="db_url">jdbc:mysql://dasa.vertexid.com:3306/db_dasa</entry>
+    <entry key="db_id">dasa</entry>
+    <entry key="db_pw">dasa!000</entry>
+    <entry key="ftp_host">115.71.233.33</entry>
+    <entry key="ftp_port">22</entry>
+    <entry key="ftp_user_name">root</entry>
+    <entry key="ftp_password">m1347942*</entry>
+<!--개발서버 끝-->
+
+<!--운영서버 시작-->
+<!--
+    <entry key="host_name">was1</entry>
+    <entry key="apns_host">gateway.push.apple.com</entry>
+    <entry key="apns_port">2195</entry>
+    <entry key="apns_path">/home/azureuser/www/properties/iphone_rel.p12</entry>
+    <entry key="apns_pw">vertexid</entry>
+    <entry key="db_driver">net.sf.log4jdbc.DriverSpy</entry>
+    <entry key="db_url">jdbc:mysql://db.dspams.co.kr:3306/db_dasa?autoReconnection=true</entry>
+    <entry key="db_url">jdbc:mysql://dasa.vertexid.com:3306/db_dasa</entry>
+    <entry key="db_id">dasa</entry>
+    <entry key="db_pw">dasa!000</entry>
+    <entry key="ftp_host">40.74.125.230</entry>
+    <entry key="ftp_port">22</entry>
+    <entry key="ftp_user_name">azureuser</entry>
+    <entry key="ftp_password">ehdtjsp*2</entry>
+-->
+<!--운영서버 끝-->
+
+</properties>

@@ -1,0 +1,1443 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="actvityRnd">	
+	<select id="rndView" parameterType="com.dasa.activity.vo.ActivityEmVo" resultType="com.dasa.activity.vo.ActivityEmVo">
+		select COUNT(*) AS DM_TOT_CNT
+       		 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_ATTEND_DE IS NULL, 0, 1))),0) AS DM_ATTEND_Y_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_ATTEND_DE IS NULL, 1, 0))),0) AS DM_ATTEND_N_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_LVFFC_DE IS NULL, 0, 1))),0) AS DM_LVFFC_Y_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_LVFFC_DE IS NULL, 1, 0))),0) AS DM_LVFFC_N_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 1, 0)),0) AS DM_VCATN_Y_CNT 	
+		  FROM tb_empl_manage EM
+		  LEFT OUTER JOIN tb_dclz_manage DM
+		    ON EM.em_no = DM.em_no
+		   <if test="!searchDate.equals('')">
+		   AND DM.DM_DT = #{searchDate}
+		   </if>
+		   AND DM.delete_at = 'N'
+		 WHERE EM.em_dty_code = '0000000007'
+		   AND EM.delete_at = 'N'
+   			 <choose>
+				<when test="retireYn.equals('NO')">
+				   AND EM.use_at = 'Y'
+				</when>
+				<otherwise>
+				   AND EM.use_at = 'N'
+				</otherwise>
+			</choose>
+		   <if test="!searchBhf.equals('')">
+		   AND EM.BHF_CODE = #{searchBhf}
+		   </if>
+		   <if test="!searchTeam.equals('')">
+		   AND EM.TEAM_CODE = #{searchTeam}
+		   </if>
+<!-- 		   <if test="auth_flag > 2 "> -->
+<!-- 		   AND EM.EM_NO = #{em_no}			    -->
+<!-- 		   </if> -->
+<!-- 		   <if test="!params.searchEmpNm.equals('')"> -->
+<!-- 		   AND EM.EM_NM LIKE '%${params.searchEmpNm}%' -->
+<!-- 		   </if> -->
+	</select>
+
+	<select id="rndListCnt" parameterType="com.vertexid.vo.NaviVo" resultType="int">
+			SELECT
+			  COUNT(*)
+			FROM tb_empl_manage EM
+			  LEFT OUTER JOIN tb_orgnzt_manage OM
+			    ON EM.bhf_code = OM.om_code
+			  LEFT OUTER JOIN tb_dclz_manage DM
+			    ON EM.em_no = DM.em_no
+		       <if test="!params.searchDate.equals('')">
+			   AND DM.dm_dt = #{params.searchDate}
+			   </if>
+			   AND DM.delete_at = 'N'
+			 WHERE EM.em_dty_code = '0000000007'
+ 			 <choose>
+				<when test="params.retireYn.equals('NO')">
+				   AND EM.use_at = 'Y'
+				</when>
+				<otherwise>
+				   AND EM.use_at = 'N'
+				</otherwise>
+			</choose>
+			   <if test="auth_flag > 2 ">
+			   AND EM.EM_NO = #{em_no}			   
+			   </if>
+			<if test="!params.searchEmpNm.equals('')">
+			   AND EM.EM_NM LIKE '%${params.searchEmpNm}%'
+			</if>
+			<if test="!params.searchBhf.equals('')">
+			   AND EM.BHF_CODE = #{params.searchBhf}
+			</if>
+			<if test="!params.searchTeam.equals('')">
+			   AND EM.TEAM_CODE = #{params.searchTeam}
+			</if>
+<!-- 			<if test="!params.searchDate.equals('')"> -->
+<!-- 			   AND DM.DM_DT = #{params.searchDate} -->
+<!-- 			</if> -->
+		<choose>
+			<when test="params.searchAttendLvffcAt.equals('AY')">
+			   AND DM.DM_ATTEND_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('AN')">
+			   AND DM.DM_ATTEND_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LY')">
+			   AND DM.DM_LVFFC_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LN')">
+			   AND DM.DM_LVFFC_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('VY')">
+			   AND DM.DM_VCATN_AT = 'Y'
+			</when>
+		</choose>
+	</select>
+	
+	<select id="rndList" parameterType="com.vertexid.vo.NaviVo" resultType="com.dasa.activity.vo.ActivityEmVo">
+			SELECT EM.team_code 
+			     , EM.bhf_code
+			     , OM.om_nm AS bhf_nm
+			     , EM.em_no
+			     , EM.em_nm    
+			     , EM.em_dty_code  
+				 , EM.em_mbtl_num
+			     
+			     , fn_img_path(EM.am_no) emp_ai_path
+			     , DATE_FORMAT(DM.DM_ATTEND_DE, '%H:%i') AS dm_attend_de
+				 , DATE_FORMAT(DM.DM_LVFFC_DE, '%H:%i') AS dm_lvffc_de
+				 , if(DM.DM_ATTEND_DE is not null,'Y' ,'N') AS dm_attend_at
+				 , if(DM.DM_LVFFC_DE is not null,'Y' ,'N') AS dm_lvffc_at 
+				 , ifnull(DM.DM_VCATN_AT ,'N') AS dm_vcatn_at 
+				 , DM.dm_at_am_no
+				 , fn_img_path(DM.dm_at_am_no) dm_at_path 
+				 , DM.dm_lv_am_no
+				 , fn_img_path(DM.dm_lv_am_no) dm_lv_path 
+			  FROM tb_empl_manage EM
+			  LEFT OUTER JOIN tb_orgnzt_manage OM
+			    ON EM.bhf_code = OM.om_code
+			  LEFT OUTER JOIN tb_dclz_manage DM
+			    ON EM.em_no = DM.em_no
+		       <if test="!params.searchDate.equals('')">
+			   AND DM.dm_dt = #{params.searchDate}
+			   </if>
+			   AND DM.delete_at = 'N'
+			 WHERE EM.em_dty_code = '0000000007'
+			 <choose>
+				<when test="params.retireYn.equals('NO')">
+				   AND EM.use_at = 'Y'
+				</when>
+				<otherwise>
+				   AND EM.use_at = 'N'
+				</otherwise>
+			</choose>
+			   <if test="auth_flag > 2 ">
+			   AND EM.EM_NO = #{em_no}			   
+			   </if>
+			<if test="!params.searchEmpNm.equals('')">
+			   AND EM.EM_NM LIKE '%${params.searchEmpNm}%'
+			</if>
+			<if test="!params.searchBhf.equals('')">
+			   AND EM.BHF_CODE = #{params.searchBhf}
+			</if>
+			<if test="!params.searchTeam.equals('')">
+			   AND EM.TEAM_CODE = #{params.searchTeam}
+			</if>
+		<choose>
+			<when test="params.searchAttendLvffcAt.equals('AY')">
+			   AND DM.DM_ATTEND_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('AN')">
+			   AND DM.DM_ATTEND_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LY')">
+			   AND DM.DM_LVFFC_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LN')">
+			   AND DM.DM_LVFFC_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('VY')">
+			   AND DM.DM_VCATN_AT = 'Y'
+			</when>
+		</choose>
+		order by EM.em_nm
+		${pagingEnd}
+	</select>
+	
+	<update id="rndSaveEmpAiNo" parameterType="com.dasa.activity.vo.ActivityEmVo">
+		UPDATE TB_EMPL_MANAGE A
+		SET am_no = #{am_no, jdbcType=NUMERIC}
+		   , UPDT_MAN = #{updt_man}
+		WHERE EM_NO = #{em_no, jdbcType=NUMERIC}
+	</update>
+	
+	<!--현재진열줄수 해더-->
+	<select  id="rndCurrColunmlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT DISTINCT DRAPI.oi_code AS oi_code
+			, DRAPI.oi_code_nm AS oi_code_nm
+			, OI.oi_sort_ordr AS oi_sort_ordr
+	    FROM tb_diary_rnd_arr_prdlst_item DRAPI
+	    INNER JOIN tb_option_item OI
+	      ON DRAPI.oi_code = OI.oi_code
+	    WHERE DRAPI.base_de = #{base_de}
+	      AND DRAPI.regist_man = #{em_no}
+	      AND DRAPI.sm_code = #{sm_code}
+    	  AND OI.use_at = 'Y'
+  	 	  AND OI.delete_at = 'N'
+    	ORDER BY OI.oi_sort_ordr
+	</select>
+	<!-- 현재진열줄수 리스트 -->
+	<select  id="rndCurrlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  DRAP.oi_code  
+			, DRAP.oi_code_nm 
+	   		<foreach collection="columnArr" item="item">
+			, MAX(IF(DRAPI.oi_code = #{item.oi_code}, DRAPI.drapi_cur_value, '')) AS "${item.oi_code}"
+	        </foreach>
+			, MAX(DRAP.drap_partclr_matter) AS partclr_matter  
+			, date_format(MAX(DRAP.updt_de),'%Y-%m-%d %H:%i') AS updt_de  
+		FROM  tb_diary_rnd_arr_prdlst DRAP  
+		INNER JOIN tb_diary_rnd_arr_prdlst_item DRAPI  
+		ON DRAP.oi_code = DRAPI.drap_oi_code  
+		AND DRAP.base_de = DRAPI.base_de
+		AND DRAP.sm_code = DRAPI.sm_code
+		INNER JOIN tb_option_item OI  
+		ON DRAP.oi_code = OI.oi_code  
+		WHERE DRAP.base_de = #{base_de}
+		  AND DRAP.regist_man = #{em_no}
+		  AND DRAP.sm_code = #{sm_code}
+		  AND OI.use_at = 'Y'
+  	 	  AND OI.delete_at = 'N'
+		GROUP BY DRAP.oi_code, DRAP.oi_code_nm, OI.oi_sort_ordr  
+		ORDER BY OI.oi_sort_ordr
+	</select>
+	<select  id="rndCurrInfo" resultType="com.dasa.activity.vo.ActivityGridMobileVo" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT date_format(updt_de,'%Y-%m-%d %H:%i') AS updt_de
+			 , dra_innb AS main_innb
+		  FROM  tb_diary_rnd_arr  
+		WHERE base_de = #{base_de}
+		AND regist_man = #{em_no}
+		AND sm_code = #{sm_code}
+	</select>
+	
+	<select  id="rndCvsInfo" resultType="com.dasa.activity.vo.ActivityGridMobileVo" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT date_format(updt_de,'%Y-%m-%d %H:%i') AS updt_de
+			 , drc_innb AS main_innb
+			 , drc_partclr_matter AS partclr_matter
+		  FROM  tb_diary_rnd_cvs  
+		WHERE base_de = #{base_de}
+		AND regist_man = #{em_no}
+		AND sm_code = #{sm_code}
+	</select>
+	
+	<!--ADROID 현재진열줄수 품목리스트-->
+	<select  id="rndCurrPrdList" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  ifnull(drap_innb,'') drap_innb
+		      , ifnull(dra_innb,'') dra_innb
+		      , OI.oi_code
+		      , OI.oi_nick_nm oi_code_nm
+		      , ifnull(drap_cur_rate,'') AS drap_cur_rate
+		      , ifnull(drap_partclr_matter,'') AS drap_partclr_matter
+		      , ifnull(date_format(DRAP.updt_de,'%Y-%m-%d %H:%i'),'') AS updt_de
+		      , OI.oi_sort_ordr AS sort_ordr
+		 FROM tb_diary_rnd_arr_prdlst DRAP
+<!-- 		  LEFT OUTER JOIN tb_option_item OI -->
+		 <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		</choose> 
+		    ON DRAP.oi_code = OI.oi_code
+		   AND DRAP.base_de = #{base_de}
+		   AND DRAP.regist_man = #{em_no}
+		   AND DRAP.sm_code = #{sm_code}
+		  WHERE oi_type = '0000000069'
+		   AND OI.use_at = 'Y'
+		   AND OI.delete_at = 'N'
+		ORDER BY OI.oi_sort_ordr, DRAP.drap_innb 
+		
+	</select>
+	
+	<select  id="rndCurrCnt" resultType="int" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+	select count(*) cnt 
+	  from tb_diary_rnd_arr_prdlst
+	 where regist_man = #{em_no}
+	  AND base_de = #{base_de} 
+	  AND sm_code = #{sm_code}
+	</select>
+	<!--ADROID 현재진열줄수 품목 아이템 리스트 -->
+	<select  id="rndCurrPrdItemList" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  IFNULL( DRAPI.drapi_innb,'') AS drapi_innb
+		      , IFNULL( DRAPI.drap_innb,'') AS drap_innb
+		      , IFNULL( DRAPI.dra_innb,'') AS dra_innb
+		      , OI.oi_code AS oi_code
+		      , OI2.oi_code AS drap_oi_code
+		      , OI.oi_nick_nm AS oi_code_nm
+		      , IFNULL(DRAPI.drapi_cur_value,'') drapi_cur_value
+		      , IF(OI.oi_code = '00039' ,'1','2') calc_flag
+		    from tb_option_item OI 
+		  LEFT OUTER JOIN tb_option_item OI2
+		  ON OI2.oi_type = '0000000069'
+		  LEFT OUTER JOIN tb_diary_rnd_arr_prdlst_item DRAPI
+		   ON OI2.oi_code = DRAPI.drap_oi_code
+		  AND OI.oi_code = DRAPI.oi_code
+		  AND DRAPI.regist_man = #{em_no}
+		  AND DRAPI.base_de = #{base_de} 
+		  AND DRAPI.sm_code = #{sm_code}
+		  where OI.oi_type = '0000000068'
+		  AND OI.use_at = 'Y'
+  	 	  AND OI.delete_at = 'N'
+		  AND OI2.use_at ='Y'		  
+  	 	  AND OI2.delete_at = 'N'
+		  <if test="updateFlag.equals('false')">
+	      and DRAPI.drapi_innb is NOT NULL
+	      </if>
+		ORDER BY OI2.oi_code , OI.oi_sort_ordr
+<!-- 		SELECT  drapi_innb -->
+<!-- 		      , drap_innb -->
+<!-- 		      , dra_innb -->
+<!-- 		      , DRAPI.oi_code -->
+<!-- 		      , DRAPI.drap_oi_code -->
+<!-- 		      , oi_code_nm -->
+<!-- 		      , ifnull(DRAPI.drapi_cur_value,'') AS drapi_cur_value -->
+<!-- 		      , IF(DRAPI.oi_code = '00039' ,'1','2') calc_flag		       -->
+<!-- 		 FROM tb_diary_rnd_arr_prdlst_item DRAPI -->
+<!-- 		  LEFT OUTER JOIN tb_option_item OI -->
+<!-- 		    ON DRAPI.oi_code = OI.oi_code -->
+<!-- 		 WHERE DRAPI.base_de = #{base_de} -->
+<!-- 		   AND DRAPI.regist_man = #{em_no} -->
+<!-- 		   AND DRAPI.sm_code = #{sm_code} -->
+<!-- 		ORDER BY DRAPI.drap_innb ,OI.oi_sort_ordr, DRAPI.oi_code -->
+	</select>	
+	
+	<select  id="tempRndCurrPrdList" resultType="map" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		select  '' drap_innb
+			  , '' dra_innb
+			  , oi_code
+			  , oi_nick_nm oi_code_nm
+			  , '' drap_pog_rate
+	          , '' drap_cur_rate
+			  , '' drap_partclr_matter
+			  , '' AS updt_de
+			  , oi_sort_ordr AS sort_ordr
+		  from tb_option_item
+		 where oi_type = #{column_code}
+		   AND use_at ='Y'		  
+  	 	   AND delete_at = 'N'
+		 ORDER BY oi_sort_ordr 
+ 
+		
+	</select>
+	<!--ADROID 현재진열줄수 품목 아이템 리스트 -->
+	<select  id="tempRndCurrPrdItemList" resultType="map" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  '' AS drapi_innb
+		      , '' AS drap_innb
+		      , '' AS dra_innb
+		      , OI.oi_code AS oi_code
+		      , OI2.oi_code AS drap_oi_code
+		      , OI.oi_nick_nm AS oi_code_nm
+		      , IFNULL(DRAPI.drapi_cur_value,'') drapi_cur_value
+		      , IF(OI.oi_code = '00039' ,'1','2') calc_flag
+		    from tb_option_item OI 
+		  LEFT OUTER JOIN tb_option_item OI2
+		  ON OI2.oi_type = #{column_code} 
+		  LEFT OUTER JOIN tb_diary_rnd_arr_prdlst_item DRAPI
+		  on OI.oi_code = DRAPI.oi_code
+		  and OI2.oi_code = DRAPI.drap_oi_code
+		  AND DRAPI.sm_code = #{sm_code}
+		  AND DRAPI.regist_man = #{em_no}
+		  and DRAPI.base_de = ( select max(base_de) from tb_diary_rnd_arr where regist_man = #{em_no} AND sm_code = #{sm_code} ) 
+		  where OI.oi_type = #{body_code} 
+		   AND OI.use_at ='Y'		  
+  	 	   AND OI.delete_at = 'N'
+  	 	   AND OI2.use_at ='Y'
+  	 	   AND OI2.delete_at = 'N'
+		ORDER BY OI2.oi_code , OI.oi_sort_ordr
+	</select>
+	
+	
+		<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="rndMoblieCurrSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_arr(
+			  dra_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dra_innb, jdbcType=NUMERIC}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}			
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="dra_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="rndMoblieCurrPrdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_arr_prdlst(
+			  drap_innb
+			, dra_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, drap_cur_rate
+			, drap_partclr_matter
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drap_innb, jdbcType=NUMERIC}
+			, #{dra_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{drap_oi_code}
+			, #{drap_oi_code_nm}
+			, #{drap_cur_rate}
+			, #{drap_partclr_matter}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, drap_cur_rate = #{drap_cur_rate}
+			, drap_partclr_matter = #{drap_partclr_matter}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="drap_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="rndMoblieCurrPrdItemSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_arr_prdlst_item(
+			  drapi_innb
+			, drap_innb
+			, dra_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, drap_oi_code
+			, drap_oi_code_nm
+			, drapi_cur_value
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drapi_innb, jdbcType=NUMERIC }
+			, #{drap_innb}
+			, #{dra_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{oi_code}
+			, #{oi_code_nm}
+			, #{drap_oi_code}
+			, #{drap_oi_code_nm}
+			, #{drapi_cur_value, jdbcType=NUMERIC}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  drapi_cur_value = #{drapi_cur_value}
+			, updt_man = #{em_no}
+			, updt_de = now()
+	</insert>
+	
+	
+	<!--Mobile CVS순회 업무일지 by zzz2613-->
+	<select  id="getCvsList" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		select ifnull(drcc.drcc_innb,'') AS drcc_innb,
+		       ifnull(drcc.drc_innb,'') AS drc_innb,
+		       C.c_code AS drcc_c_code,
+		       C.c_name AS drcc_c_code_nm,
+		       ifnull(date_format(drcc.updt_de, '%Y-%m-%d %H:%i'),'') as updt_de
+		  from tb_code C
+     	  left outer join  tb_diary_rnd_cvs_check drcc
+            ON C.c_code = drcc.drcc_c_code
+		   and drcc.base_de = #{base_de}
+		   and drcc.regist_man = #{em_no}
+		   and drcc.sm_code = #{sm_code}
+		  WHERE c_parent_code='0000000055'
+		 order by C.c_order
+	</select>
+	
+	<!--Mobile CVS순회 업무일지 by zzz2613-->
+	<select  id="getCvsItemList" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		select ifnull(drcci.drcci_innb,'') AS drcci_innb,
+			   ifnull(drcci.drcc_innb,'') AS drcc_innb,
+			   ifnull(drcci.drc_innb,'') AS drc_innb,
+			   C2.c_code AS drcci_c_code,
+			   C2.c_name AS drcci_c_code_nm,
+			   C2.c_desc AS drcci_c_desc,
+			   ifnull(drcci.drcci_state, '') AS drcci_state,
+		     C1.c_code AS drcc_c_code,
+		     C1.c_name AS drcc_c_code_nm
+		  from tb_code C1
+		  LEFT OUTER JOIN tb_code C2
+		  	ON C1.c_code = C2.c_parent_code
+		  left outer join  tb_diary_rnd_cvs_check drcc
+		    ON C1.c_code = drcc.drcc_c_code
+		   AND drcc.base_de = #{base_de}
+		   and drcc.regist_man = #{em_no}
+		   and drcc.sm_code = #{sm_code}
+		  left JOIN tb_diary_rnd_cvs_check_item drcci
+			ON C2.c_code = drcci.drcci_c_code
+		   AND drcci.base_de = #{base_de}
+		   and drcci.regist_man = #{em_no}
+		   and drcci.sm_code = #{sm_code}
+		 WHERE C1.c_parent_code='0000000055'
+		 order by C1.c_order, C2.c_order
+<!-- 		select drcci.drcci_innb, -->
+<!-- 			   drcci.drcc_innb, -->
+<!-- 			   drcci.drc_innb, -->
+<!-- 			   drcci.drcci_c_code, -->
+<!-- 			   drcci.drcci_c_code_nm, -->
+<!-- 			   drcci.drcci_c_desc, -->
+<!-- 			   ifnull(drcci.drcci_state, '') AS drcci_state, -->
+<!-- 		       drcc.drcc_c_code, -->
+<!-- 		       drcc.drcc_c_code_nm -->
+<!-- 		  from tb_diary_rnd_cvs_check drcc, -->
+<!-- 		       tb_diary_rnd_cvs_check_item drcci -->
+<!-- 		 where drcc.drcc_innb = drcci.drcc_innb -->
+<!-- 		   and drcci.base_de = #{base_de} -->
+<!-- 		   and drcci.regist_man = #{em_no} -->
+<!-- 		   and drcci.sm_code = #{sm_code} -->
+<!-- 		 order by drcci.drcc_innb, drcci.drcci_innb -->
+	</select>
+	<!--Mobile CVS순회 업무일지 by zzz2613-->
+	<select  id="tempGetCvsList" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		select '' AS drcc_innb
+			 , '' AS drc_innb
+			 , c_code AS drcc_c_code
+			 , c_name AS drcc_c_code_nm
+			 , '' as updt_de 
+		  from tb_code
+		 where c_parent_code = #{column_code}
+		 order by c_order
+	</select>
+	
+	<!--Mobile CVS순회 업무일지 by zzz2613-->
+	<select  id="tempGetCvsItemList" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		select '' AS drcci_innb
+		  	 , '' AS drcc_innb
+		  	 , '' AS drc_innb
+		  	 , C2.c_code AS drcci_c_code
+		  	 , C2.c_name AS drcci_c_code_nm
+		  	 , C2.c_desc AS drcci_c_desc
+		  	 , '' AS drcci_state
+		     , C1.c_code AS drcc_c_code
+		     , C1.c_name AS drcc_c_code_nm 
+		  from tb_code C1
+		LEFT OUTER JOIN tb_code C2
+		on C1.c_code = C2.c_parent_code
+		where C1.c_parent_code = #{column_code}
+		order by C1.c_order , C2.c_order
+	</select>
+	
+	<insert id="rndMoblieCvsSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_cvs(
+			  drc_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, base_de
+			, drc_partclr_matter
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drc_innb, jdbcType=NUMERIC}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}			
+			, #{base_de}			
+			, #{drc_partclr_matter}
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  drc_partclr_matter = #{drc_partclr_matter}
+			, updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="drc_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="rndMoblieCvsCheckSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_cvs_check(
+			  drcc_innb
+			, drc_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, drcc_c_code
+			, drcc_c_code_nm
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drcc_innb, jdbcType=NUMERIC}
+			, #{drc_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{drcc_c_code}
+			, #{drcc_c_code_nm}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, updt_de = now()
+			
+		<selectKey resultType="String" keyProperty="drcc_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="rndMoblieCvsCheckItemSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_cvs_check_item(
+			  drcci_innb
+			, drcc_innb
+			, drc_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, drcci_c_code
+			, drcci_c_code_nm
+			, drcci_c_desc
+			, drcci_state
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drcci_innb, jdbcType=NUMERIC }
+			, #{drcc_innb}
+			, #{drc_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{drcci_c_code}
+			, #{drcci_c_code_nm}
+			, #{drcci_c_desc}
+			, #{drcci_state}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  drcci_state = #{drcci_state}
+			, updt_man = #{em_no}
+			, updt_de = now()
+	</insert>
+	
+	
+	<!--모바일&웹겸용 BIG 해더-->
+	<select  id="rndBigColunmlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT DISTINCT OI.oi_code AS oi_code
+			, OI.oi_nick_nm AS oi_code_nm
+	    FROM tb_diary_rnd_big_prdlst_item DRBPI
+	    <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		</choose>
+<!-- 	    INNER JOIN tb_option_item OI -->
+	      ON DRBPI.oi_code = OI.oi_code
+	      AND DRBPI.base_de = #{base_de}
+	      AND DRBPI.regist_man = #{em_no}
+	      AND DRBPI.sm_code = #{sm_code}
+	    WHERE OI.oi_type = '0000000070'
+          AND OI.use_at = 'Y'    
+    	ORDER BY OI.oi_sort_ordr
+	</select>
+	<!-- 모바일&웹겸용 BIG 리스트 -->
+	<select  id="rndBiglist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  OI.oi_code  
+			, OI.oi_nick_nm oi_code_nm 
+			, ifnull(DRBP.drbp_innb,'') drbp_innb
+	   		<foreach collection="columnArr" item="item">
+			, MAX(IF(DRBPI.oi_code = #{item.oi_code}, DRBPI.drbpi_cur_value, '')) AS "${item.oi_code}"
+			, MAX(IF(DRBPI.oi_code = #{item.oi_code}, DRBPI.drbpi_innb, '')) AS "${item.oi_code}_innb"
+	        </foreach>
+<!-- 			, MAX(DRBP.drbp_partclr_matter) AS partclr_matter  -->
+			, date_format(MAX(DRBP.updt_de),'%Y-%m-%d %H:%i') AS updt_de
+		FROM  tb_diary_rnd_big_prdlst DRBP  
+		INNER JOIN tb_diary_rnd_big_prdlst_item DRBPI  
+		ON DRBP.drbp_innb  = DRBPI.drbp_innb 
+		<choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+				INNER JOIN tb_option_item OI  
+			</otherwise>
+		</choose>
+		
+<!-- 		INNER JOIN tb_option_item OI   -->
+		ON DRBP.oi_code = OI.oi_code  
+		AND DRBP.base_de = #{base_de}
+		AND DRBP.regist_man = #{em_no}
+		AND DRBP.sm_code = #{sm_code}
+		WHERE OI.oi_type = '0000000071'
+		  AND OI.use_at = 'Y' 
+		GROUP BY DRBP.oi_code, DRBP.oi_code_nm, OI.oi_sort_ordr  
+		ORDER BY OI.oi_sort_ordr
+	</select>
+	<!-- 모바일 BIG 리스트 -->
+	<select  id="rndBigInfo" resultType="com.dasa.activity.vo.ActivityGridMobileVo" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT drb_partclr_matter AS partclr_matter
+			 , date_format(updt_de,'%Y-%m-%d %H:%i') AS updt_de
+			 , drb_innb AS main_innb
+		  FROM  tb_diary_rnd_big  
+		WHERE base_de = #{base_de}
+		AND regist_man = #{em_no}
+		AND sm_code = #{sm_code}
+	</select>
+	
+	<insert id="rndMoblieBigSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_big(
+			  drb_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, drb_partclr_matter
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drb_innb, jdbcType=NUMERIC}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{partclr_matter}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  drb_partclr_matter = #{partclr_matter}
+			, updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="drb_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	
+	<insert id="rndMoblieBigPrdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_big_prdlst(
+			  drbp_innb
+			, drb_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drbp_innb, jdbcType=NUMERIC}
+			, #{drb_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{drbp_oi_code}
+			, #{drbp_oi_code_nm}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="drbp_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<insert id="rndMoblieBigPrdItemSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_big_prdlst_item(
+			  drbpi_innb
+			, drbp_innb
+			, drb_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, drbp_oi_code
+			, drbp_oi_code_nm
+			, drbpi_cur_value
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drbpi_innb, jdbcType=NUMERIC }
+			, #{drbp_innb}
+			, #{drb_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{oi_code}
+			, #{oi_code_nm}
+			, #{drbp_oi_code}
+			, #{drbp_oi_code_nm}
+			, #{drbpi_cur_value, jdbcType=NUMERIC}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  drbpi_cur_value = #{drbpi_cur_value}
+			, updt_man = #{em_no}
+			, updt_de = now()
+	</insert>
+	
+	<!-- ODD시황  -->
+	<select  id="rndOddlist" resultType="com.dasa.activity.vo.ActivityRndOddVo" parameterType="map" >
+		SELECT ifnull(DROPR.drop_innb,'') AS drop_innb
+		    , ifnull(DROPR.drop_flag,'') AS drop_flag
+		    , ifnull(DROPR.drop_img_url,'') AS drop_img_url
+		    , ifnull(DROPR.drop_partclr_matter,'') AS drop_partclr_matter 
+		    , ifnull(date_format(DROPR.UPDT_DE,'%Y-%m-%d %H:%i'),'') AS updt_de  
+		 FROM tb_diary_rnd_odd DRO
+		 LEFT OUTER JOIN tb_diary_rnd_odd_prdlst DROPR
+		   ON DRO.dro_innb = DROPR.dro_innb 
+		  AND DRO.sm_code = DROPR.sm_code
+		  AND DROPR.delete_at = 'N'
+		WHERE DRO.base_de = #{base_de}
+		  AND DRO.regist_man = #{em_no}
+		  AND DRO.sm_code = #{sm_code}
+		ORDER BY DROPR.drop_innb
+	</select>
+	<!-- TRT  -->
+	<select  id="rndTrtlist" resultType="com.dasa.activity.vo.ActivityRndTrtVo" parameterType="map" >
+		SELECT DRT.drt_innb
+      		 , DRTP.drtp_innb
+			 , DRTP.pm_code
+			 , DRTP.pm_code_nm
+		     , DRTP.trtmnt_at
+		     , DRT.base_de
+		     , date_format(DRT.UPDT_DE,'%Y-%m-%d %H:%i') AS updt_de
+		  FROM tb_diary_rnd_trt DRT
+		  LEFT OUTER JOIN tb_diary_rnd_trt_prdlst DRTP
+		    ON DRT.drt_innb = DRTP.drt_innb
+		   AND DRT.sm_code = DRTP.sm_code
+		  LEFT OUTER JOIN tb_option_item OI
+       	    ON DRTP.pm_code = OI.oi_code 
+		 WHERE DRT.base_de= #{base_de}
+		   AND DRT.regist_man = #{em_no}
+		   AND DRT.sm_code = #{sm_code}
+		   AND DRT.delete_at = 'N'
+		   AND DRTP.delete_at = 'N'
+		 ORDER BY OI.oi_sort_ordr
+	</select>
+	
+    <select  id="rndSmList" resultType="com.dasa.activity.vo.ActivityRndPlanStrVo" parameterType="map" >
+        select prdi.prdi_sm_code as sm_code
+             , prdi.prdi_sm_code_nm as sm_nm
+             , fn_img_path(am.am_no) as sm_img_url
+             , ifnull(sm.sm_cvscafe_at, 'N') as sm_cvscafe_at
+             , ifnull(sm.sm_la, '') as sm_la
+             , ifnull(sm.sm_lo, '') as sm_lo
+             , drc.drc_innb 
+             , fn_get_plan_ckeck(prdi.regist_man ,prdi.prdi_sm_code,prdi.plan_de) sm_mod_at 
+          from tb_plan_rnd_day_item prdi
+               left outer join tb_attach_main am
+                    on prdi.am_no = am.am_no
+                    and am.delete_at = 'N'
+               left outer join tb_str_manage sm
+                    on prdi.prdi_sm_code = sm.sm_code
+            <!--    left outer join tb_attach_item ai
+                    on am.am_no = ai.am_no
+                    and ai.delete_at = 'N' -->
+               left outer join tb_diary_rnd_cvs drc
+      		     on prdi.plan_de = drc.base_de
+      		 	and prdi.regist_man = drc.regist_man  
+      		 	and prdi.prdi_sm_code =  drc.sm_code
+         where prdi.regist_man = #{em_no}
+           and prdi.plan_de = #{plan_de}
+           and sm.sm_oper_at = 'Y'
+           order by prdi.prdi_sm_code_nm 
+    </select>
+	
+	
+	<select  id="m_tempRndTrtlist" resultType="hashmap" parameterType="map" >
+		 SELECT '' drt_innb
+	      	  , '' drtp_innb
+			  , OI.oi_code  pm_code
+			  , OI.oi_nick_nm pm_code_nm
+		      , ifnull(DRTP.trtmnt_at,'')  trtmnt_at 
+		      , ''  base_de 
+		  FROM tb_diary_rnd_trt DRT
+		  LEFT OUTER JOIN tb_diary_rnd_trt_prdlst DRTP
+		    ON DRT.drt_innb = DRTP.drt_innb
+		   AND DRT.sm_code = DRTP.sm_code
+    	 RIGHT OUTER JOIN tb_option_item OI
+       	    ON DRTP.pm_code = OI.oi_code  
+		   AND DRT.base_de= (select max(base_de) from tb_diary_rnd_trt_prdlst where regist_man = #{em_no} AND sm_code = #{sm_code} )
+		   AND DRT.regist_man = #{em_no}
+		   AND DRT.sm_code = #{sm_code} 
+		   AND DRT.delete_at = 'N'
+		   AND DRTP.delete_at = 'N'
+		 WHERE OI.oi_type = '0000000072'
+		   AND OI.use_at = 'Y'
+  	 	   AND OI.delete_at = 'N'
+		 ORDER BY OI.oi_sort_ordr
+	</select>
+	<select  id="rndTrtlistCnt" resultType="int" parameterType="map" >
+		SELECT count(*) cnt
+	    FROM tb_diary_rnd_trt_prdlst 
+	  WHERE base_de= #{base_de}
+	   AND regist_man = #{em_no}
+	   AND sm_code = #{sm_code}
+	   AND delete_at = 'N'
+	</select>
+	
+	<!--Mobile  ODD시황 -->
+	<select  id="rndMobileOddList" resultType="map" parameterType="map" >
+		SELECT ifnull(DROPR.drop_innb ,'') AS drop_innb
+		    , ifnull(DROPR.drop_flag ,'') AS drop_flag
+		    , ifnull(DROPR.drop_img_url ,'') AS drop_img_url
+		    ,ifnull(DROPR.drop_partclr_matter ,'') AS drop_partclr_matter
+		 FROM tb_diary_rnd_odd DRO 
+		 LEFT OUTER JOIN tb_diary_rnd_odd_prdlst DROPR 
+		   ON DRO.dro_innb = DROPR.dro_innb  
+		  AND DRO.sm_code = DROPR.sm_code 
+		  AND DROPR.delete_at = 'N'
+		WHERE DRO.base_de = #{base_de} 
+		  AND DRO.regist_man = #{em_no} 
+		  AND DRO.sm_code = #{sm_code} 
+		ORDER BY DROPR.drop_innb 
+	</select>
+	
+	
+	<!--Mobile  ODD시황 INFO -->
+	<select  id="rndMobileOddInfo" resultType="com.dasa.activity.vo.ActivityRndOddVo" parameterType="map" >
+		SELECT dro_innb
+			 , date_format(DRO.updt_de,'%Y-%m-%d %H:%i') AS updt_de  
+		 FROM tb_diary_rnd_odd DRO
+		WHERE DRO.base_de = #{base_de}
+		  AND DRO.regist_man = #{em_no}
+		  AND DRO.sm_code = #{sm_code}
+	</select>
+	
+	<insert  id="rndMobileOddsave" parameterType="map" useGeneratedKeys="true">
+		INSERT INTO tb_diary_rnd_odd
+		(	 dro_innb
+			,cm_code
+			,om_code
+			,sm_code
+			,base_de
+			,delete_at
+			,regist_man
+			,regist_de
+			,updt_man
+			,updt_de
+		)
+		VALUES
+		(
+			 #{dro_innb, jdbcType=NUMERIC}
+			,#{cm_code}
+			,#{om_code}
+			,#{sm_code}
+			,#{base_de}
+			,'N'
+			,#{em_no}
+			,NOW()
+			,#{em_no}
+			,NOW()
+		)
+		ON DUPLICATE KEY
+		UPDATE    updt_de     = NOW()
+		<selectKey resultType="String" keyProperty="dro_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	
+	<insert  id="rndMobileOddPrdsave" parameterType="com.dasa.activity.vo.ActivityRndOddVo" >
+		INSERT INTO tb_diary_rnd_odd_prdlst
+		(
+			 drop_innb
+			,dro_innb
+			,cm_code
+			,om_code
+			,sm_code
+			,drop_flag
+			,drop_img_url
+			,drop_partclr_matter
+			,base_de
+			,delete_at
+			,regist_man
+			,regist_de
+			,updt_man
+			,updt_de
+		)
+		VALUES
+		(
+			#{drop_innb, jdbcType=NUMERIC}
+			,#{dro_innb, jdbcType=NUMERIC}
+			,#{cm_code}
+			,#{om_code}
+			,#{sm_code}
+			,#{drop_flag}
+			,#{drop_img_url}
+			,#{drop_partclr_matter}
+			,#{base_de}
+			,'N'
+			,#{em_no}
+			,NOW()
+			,#{em_no}
+			,NOW()
+		)
+	</insert>
+	
+	
+	<!--Mobile TRT  -->
+	<select  id="rndMobileTrtlist" resultType="map" parameterType="map" >
+		SELECT ifnull(DRT.drt_innb,'')  drt_innb 
+      		 , ifnull(DRTP.drtp_innb,'') drtp_innb 
+			 , OI.oi_code  pm_code
+			 , OI.oi_nick_nm pm_code_nm
+		     , ifnull(DRTP.trtmnt_at,'')  trtmnt_at 
+		     , ifnull(DRT.base_de,'')  base_de 
+		  FROM tb_diary_rnd_trt DRT
+		  LEFT OUTER JOIN tb_diary_rnd_trt_prdlst DRTP
+		    ON DRT.drt_innb = DRTP.drt_innb
+		   AND DRT.sm_code = DRTP.sm_code
+		  <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		  </choose>
+<!-- 		  LEFT OUTER JOIN tb_option_item OI -->
+       	    ON DRTP.pm_code = OI.oi_code  
+		   AND DRT.base_de= #{base_de}
+		   AND DRT.regist_man = #{em_no}
+		   AND DRT.sm_code = #{sm_code}
+		   AND DRT.delete_at = 'N'
+		   AND DRTP.delete_at = 'N'
+		 WHERE OI.oi_type = '0000000072'
+		 ORDER BY OI.oi_sort_ordr
+	</select>
+	<!--Mobile TRT  -->
+	<select  id="rndMobileTrtInfo" resultType="com.dasa.activity.vo.ActivityRndTrtVo" parameterType="map" >
+		SELECT date_format(DRT.updt_de,'%Y-%m-%d %H:%i') AS updt_de  
+			 , drt_innb AS main_innb
+			 , drt_innb
+		  FROM tb_diary_rnd_trt DRT		  
+		 WHERE DRT.base_de= #{base_de}
+		   AND DRT.regist_man = #{em_no}
+		   AND DRT.sm_code = #{sm_code}
+		   AND DRT.delete_at = 'N'	
+	</select>
+	
+	<insert  id="m_rndTrtsave" parameterType="map">
+		INSERT INTO tb_diary_rnd_trt
+					(
+					  drt_innb
+					 , cm_code
+				     , om_code
+				     , sm_code
+				     , base_de
+				     , delete_at
+				     , regist_man
+				     , regist_de
+				     , updt_man
+				     , updt_de
+				    )
+				VALUES
+					(
+					  #{drt_innb}
+					 , #{cm_code}
+				     , #{om_code}
+				     , #{sm_code}
+				     , #{base_de}
+				     , 'N'
+				     , #{em_no}
+					 , NOW()
+					 , #{em_no}  
+					 , NOW()
+					)
+		ON DUPLICATE KEY
+		UPDATE    updt_de     = NOW()
+		<selectKey resultType="String" keyProperty="drt_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+		
+	<insert  id="m_rndTrtPrdlstsave" parameterType="map" >
+		
+			INSERT INTO tb_diary_rnd_trt_prdlst
+				(
+				  drtp_innb
+				 , drt_innb
+				 , cm_code
+			     , om_code
+			     , sm_code
+			     , pm_code
+			     , pm_code_nm
+			     , trtmnt_at
+			     , base_de
+			     , delete_at
+			     , regist_man
+			     , regist_de
+			     , updt_man
+			     , updt_de
+			    )
+			VALUES
+				(
+				  #{drtp_innb, jdbcType=NUMERIC}
+				 , #{drt_innb, jdbcType=NUMERIC}
+				 , #{cm_code}
+			     , #{om_code}
+			     , #{sm_code}
+			     , #{pm_code}
+			     , #{pm_code_nm}
+			     , #{trtmnt_at}
+			     , #{base_de}
+			     , 'N'
+			     , #{em_no}
+				 , NOW()
+				 , #{em_no}  
+				 , NOW()
+				)
+		ON DUPLICATE KEY
+		UPDATE    trtmnt_at     = #{trtmnt_at},
+				  updt_de       = NOW()
+		
+	</insert>
+	
+	<update id="rndMobileAttending" parameterType="com.dasa.activity.vo.ActivityRndMobileAttendVo">
+		UPDATE tb_plan_rnd_day_item 
+		   SET am_no 		= #{am_no}
+		     , prdi_attend_de = now()  
+		     , updt_de 		= now()
+		 WHERE regist_man 	= #{em_no}
+		   AND prdi_sm_code = #{prdi_sm_code}
+		   AND base_de		= #{base_de}
+		   AND plan_de		= #{plan_de}
+	</update>
+	<select id="rndMobileAttendingOkCnt" resultType="int" parameterType="com.dasa.activity.vo.ActivityRndMobileAttendVo">
+		select count(*) cnt
+		  from tb_plan_rnd_day_item
+		 where regist_man = #{em_no}
+		   and plan_de = #{plan_de}
+	       and am_no is not NULL
+	       and prdi_attend_de is not null
+	</select>
+	<select id="rndMobileAttendingNotCnt" resultType="int" parameterType="com.dasa.activity.vo.ActivityRndMobileAttendVo">
+		select count(*) cnt
+		  from tb_plan_rnd_day_item
+		 where regist_man = #{em_no}
+		   and plan_de = #{plan_de}
+	       and am_no is NULL
+	       and prdi_attend_de is null
+	</select>
+	<update id="rndMobileAttendingManager" parameterType="com.dasa.activity.vo.ActivityRndMobileAttendVo">
+		 INSERT INTO tb_dclz_manage(
+				   dm_dt
+				 , em_no
+				 , om_code
+				 , dm_attend_de
+				 , dm_vcatn_at
+				 , delete_at
+				 , regist_man
+				 , regist_de
+				 , updt_man
+				 , updt_de
+				 , dm_at_am_no
+		)
+		VALUES(
+				   #{plan_de}
+				 , #{em_no}
+				 , #{om_code}
+				 , now()
+				 , 'N'
+				 , 'N'
+				 , #{em_no}
+				 , now()
+				 , #{em_no}
+				 , now()
+				 , #{am_no}
+		)
+		ON DUPLICATE KEY
+		UPDATE dm_attend_de = now()
+			 , dm_at_am_no = #{am_no}
+			 , updt_de = now()
+	</update>
+	<update id="rndMobileLeavingManager" parameterType="com.dasa.activity.vo.ActivityRndMobileAttendVo">
+		UPDATE tb_dclz_manage 
+		   SET dm_lv_am_no = #{am_no}
+		     , dm_lvffc_de = now()  
+		     , updt_de = now()
+		 WHERE em_no = #{em_no}
+		   AND dm_dt = #{plan_de}
+	</update>
+	<update id="rndMobileLeavingDeleteManager" parameterType="com.dasa.activity.vo.ActivityRndMobileAttendVo">
+		UPDATE tb_dclz_manage 
+		   SET dm_lv_am_no = #{am_no}
+		     , dm_lvffc_de = now()  
+		     , updt_de = now()
+		 WHERE em_no = #{em_no}
+		   AND dm_dt = #{plan_de}
+	</update>
+	
+	<update id="rndMobileOddDel" parameterType="map">
+		DELETE FROM tb_diary_rnd_odd_prdlst 
+		 WHERE drop_innb = #{drop_innb}
+	</update>
+	
+	
+	
+	<!--PD &웹 겸용 해더-->
+	<select  id="rndPdColunmlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT DISTINCT OI.oi_code AS oi_code
+	    	, OI.oi_nick_nm AS oi_code_nm
+<!-- 	    , OI.oi_sort_ordr AS oi_sort_ordr -->
+	    FROM tb_diary_rnd_pd_prdlst_item DRPPI
+	    <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		</choose>
+	      ON DRPPI.oi_code = OI.oi_code
+	      AND DRPPI.base_de = #{base_de}
+	      AND DRPPI.regist_man = #{em_no}
+	      AND DRPPI.sm_code = #{sm_code}
+	     WHERE OI.oi_type = '0000000375'
+           AND OI.use_at = 'Y' 	      
+	    ORDER BY OI.oi_sort_ordr
+	    
+	</select>
+	<!-- PD &웹 겸용 리스트 -->
+	<select  id="rndPdlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  OI.oi_code  
+			, OI.oi_nick_nm AS oi_code_nm
+			, ifnull(DRPP.drpp_innb,'') as drpp_innb
+	   		<foreach collection="columnArr" item="item">
+			, MAX(IF(DRPPI.oi_code = #{item.oi_code}, DRPPI.drppi_cur_value, '')) AS "${item.oi_code}"
+			, MAX(IF(DRPPI.oi_code = #{item.oi_code}, DRPPI.drppi_innb, '')) AS "${item.oi_code}_innb"
+	        </foreach>   
+<!-- 	        , date_format(MAX(DRPP.updt_de),'%Y-%m-%d') AS updt_de -->
+		FROM  tb_diary_rnd_pd_prdlst DRPP  
+		INNER JOIN tb_diary_rnd_pd_prdlst_item DRPPI  
+		ON DRPP.drpp_innb = DRPPI.drpp_innb  
+		AND DRPP.base_de = DRPPI.base_de  
+<!-- 		INNER JOIN tb_option_item OI   -->
+		<choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+				INNER JOIN tb_option_item OI  
+			</otherwise>
+		</choose>
+		ON DRPP.oi_code = OI.oi_code  
+		AND DRPP.base_de = #{base_de}
+		AND DRPP.regist_man = #{em_no}
+		AND DRPP.sm_code = #{sm_code}
+	    WHERE OI.oi_type = '0000000376'
+          AND OI.use_at = 'Y' 	  
+		GROUP BY DRPP.oi_code, DRPP.OI_CODE_NM, OI.oi_sort_ordr  
+		ORDER BY OI.oi_sort_ordr
+	</select>
+	
+	<!-- 모바일 PD 정보 -->
+	<select  id="rndPdInfo" resultType="com.dasa.activity.vo.ActivityGridMobileVo" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT drp_innb AS main_innb
+			 , drp_partclr_matter AS partclr_matter
+			 , date_format(updt_de,'%Y-%m-%d %H:%i') AS updt_de
+		  FROM  tb_diary_rnd_pd  
+		WHERE base_de = #{base_de}
+		AND regist_man = #{em_no}
+		AND sm_code = #{sm_code} 
+	</select>	
+	<!-- 모바일 PD 정보 저장 -->
+	<insert id="rndMobliePdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_pd(
+			  drp_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, drp_partclr_matter
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drp_innb, jdbcType=NUMERIC}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{partclr_matter}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  drp_partclr_matter = #{partclr_matter}
+			, updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="drp_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	
+	<insert id="rndMobliePdPrdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_pd_prdlst(
+			  drpp_innb
+			, drp_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drpp_innb, jdbcType=NUMERIC}
+			, #{drp_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{drpp_oi_code}
+			, #{drpp_oi_code_nm}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="drpp_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<insert id="rndMobliePdPrdItemSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_rnd_pd_prdlst_item(
+			  drppi_innb
+			, drpp_innb
+			, drp_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, drpp_oi_code
+			, drpp_oi_code_nm
+			, drppi_cur_value
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{drppi_innb, jdbcType=NUMERIC }
+			, #{drpp_innb}
+			, #{drp_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{oi_code}
+			, #{oi_code_nm}
+			, #{drpp_oi_code}
+			, #{drpp_oi_code_nm}
+			, #{drppi_cur_value, jdbcType=NUMERIC}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  drppi_cur_value = #{drppi_cur_value}
+			, updt_man = #{em_no}
+			, updt_de = now()
+	</insert>
+</mapper>

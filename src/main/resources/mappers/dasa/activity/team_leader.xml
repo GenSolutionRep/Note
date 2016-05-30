@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="teamleader">	
+	<select id="selectListCount" parameterType="com.vertexid.vo.NaviVo" resultType="integer">
+          select 
+			    count(*)
+			from tb_empl_manage		  
+			where em_dty_code = '0000000008' 
+             and use_at = 'Y' 
+             and delete_at ='N'
+            and bhf_code != '05262'
+            and (use_at='Y' or(use_at ='N' AND em_retire_de &gt;= concat(#{params.yyyyMm}, '15'))) 
+
+		    <if test="cm_code != null and !cm_code.equals('')">
+		    and cm_code = #{cm_code}
+		    </if>
+		    <if test="params.bhf_code != null and !params.bhf_code.equals('')">
+		    and bhf_code = #{params.bhf_code}
+		    </if>
+		    <if test="params.em_no != null and !params.em_no.equals('')">
+		    and em_id = #{params.em_no}
+		    </if>
+		    <if test="params.em_nm != null and !params.em_nm.equals('')">
+		    and em_nm like '%${params.em_nm}%'
+		    </if>
+    </select>
+
+    <select id="selectList" resultType="com.gensolution.activity.vo.ActivityTeamleaderVo" parameterType="com.vertexid.vo.NaviVo">
+        ${pagingStart}
+          select 
+          		tb1.cm_code
+			    ,tb1.bhf_code
+			    ,tb2.om_nm
+			    ,tb1.em_no
+			    ,tb1.em_id
+			    ,tb1.em_nm
+			    ,tb1.use_at
+			    , max(day_01) as day_01, max(day_02) as day_02, max(day_03) as day_03, max(day_04) as day_04, max(day_05) as day_05
+			    , max(day_06) as day_06, max(day_07) as day_07, max(day_08) as day_08, max(day_09) as day_09, max(day_10) as day_10
+			    , max(day_11) as day_11, max(day_12) as day_12, max(day_13) as day_13, max(day_14) as day_14, max(day_15) as day_15
+			    , max(day_16) as day_16, max(day_17) as day_17, max(day_18) as day_18, max(day_19) as day_19, max(day_20) as day_20
+			    , max(day_21) as day_21, max(day_22) as day_22, max(day_23) as day_23, max(day_24) as day_24, max(day_25) as day_25
+			    , max(day_26) as day_26, max(day_27) as day_27, max(day_28) as day_28, max(day_29) as day_29, max(day_30) as day_30
+			    , max(day_31) as day_31
+			from tb_empl_manage tb1
+			  left outer join
+			     (select 
+			        a.cm_code
+			        ,a.bhf_code
+			        ,d.om_nm
+			        ,a.em_no
+			        ,a.em_id
+			        ,a.em_nm  
+			                
+			       ,if((concat(#{params.yyyyMm},'01') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_01
+			       ,if((concat(#{params.yyyyMm},'02') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_02
+			       ,if((concat(#{params.yyyyMm},'03') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_03
+			       ,if((concat(#{params.yyyyMm},'04') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_04
+			       ,if((concat(#{params.yyyyMm},'05') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_05
+			       ,if((concat(#{params.yyyyMm},'06') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_06
+			       ,if((concat(#{params.yyyyMm},'07') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_07
+			       ,if((concat(#{params.yyyyMm},'08') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_08
+			       ,if((concat(#{params.yyyyMm},'09') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_09
+			       ,if((concat(#{params.yyyyMm},'10') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_10
+			       ,if((concat(#{params.yyyyMm},'11') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_11
+			       ,if((concat(#{params.yyyyMm},'12') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_12
+			       ,if((concat(#{params.yyyyMm},'13') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_13
+			       ,if((concat(#{params.yyyyMm},'14') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_14
+			       ,if((concat(#{params.yyyyMm},'15') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_15
+			       ,if((concat(#{params.pre_yyyyMm},'16') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_16
+			       ,if((concat(#{params.pre_yyyyMm},'17') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_17
+			       ,if((concat(#{params.pre_yyyyMm},'18') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_18
+			       ,if((concat(#{params.pre_yyyyMm},'19') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_19
+			       ,if((concat(#{params.pre_yyyyMm},'20') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_20
+			       ,if((concat(#{params.pre_yyyyMm},'21') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_21
+			       ,if((concat(#{params.pre_yyyyMm},'22') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_22
+			       ,if((concat(#{params.pre_yyyyMm},'23') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_23
+			       ,if((concat(#{params.pre_yyyyMm},'24') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_24
+			       ,if((concat(#{params.pre_yyyyMm},'25') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_25
+			       ,if((concat(#{params.pre_yyyyMm},'26') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_26
+			       ,if((concat(#{params.pre_yyyyMm},'27') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_27
+			       ,if((concat(#{params.pre_yyyyMm},'28') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_28
+			       ,if((concat(#{params.pre_yyyyMm},'29') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_29
+			       ,if((concat(#{params.pre_yyyyMm},'30') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_30
+			       ,if((concat(#{params.pre_yyyyMm},'31') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_31
+			    from tb_empl_manage a
+			        left outer join tb_dclz_manage b 
+			              on a.em_no = b.em_no and (substring(b.dm_dt,1,6) = #{params.yyyyMm} or substring(b.dm_dt,1,6) = #{params.pre_yyyyMm}) and a.use_at = 'Y' and b.delete_at='N'        
+			        left outer join tb_code c
+			              on b.dm_vcatn_type = c.c_code
+			        left outer join tb_orgnzt_manage d
+			              on a.bhf_code = d.om_code and d.use_at='Y' and d.delete_at = 'N'
+			    where a.em_dty_code = '0000000008' 
+			      and (substring(b.dm_dt,1,6) = #{params.pre_yyyyMm} or substring(b.dm_dt,1,6) = #{params.yyyyMm}) 
+			    ) tb2
+			  on (tb1.bhf_code = tb2.bhf_code and tb1.em_no = tb2.em_no and tb1.use_at = 'Y' and tb1.delete_at='N')  
+			  where tb1.em_dty_code = '0000000008' 
+			   and tb1.bhf_code != '05262'
+			   and (tb1.use_at='Y' or (tb1.use_at ='N' AND tb1.em_retire_de &gt;= concat(#{params.yyyyMm}, '15')))
+
+		    <if test="cm_code != null and !cm_code.equals('')">
+		    and tb1.cm_code = #{cm_code}
+		    </if>
+		    <if test="params.bhf_code != null and !params.bhf_code.equals('')">
+		    and tb1.bhf_code = #{params.bhf_code}
+		    </if>
+		    <if test="params.em_id != null and !params.em_id.equals('')">
+		    and tb1.em_id = #{params.em_id}
+		    </if>
+		    <if test="params.em_nm != null and !params.em_nm.equals('')">
+		    and tb1.em_nm like '%${params.em_nm}%'
+		    </if>
+		    group by cm_code
+				    ,bhf_code
+				    ,om_nm
+				    ,em_no
+				    ,em_id
+				    ,em_nm
+		  order by om_nm, em_nm
+        ${pagingEnd}
+    </select>
+
+<select id="selectExcelList" resultType="com.gensolution.activity.vo.ActivityTeamleaderVo" parameterType="com.gensolution.activity.vo.ActivityTeamleaderVo">
+          select 
+          		tb1.cm_code
+			    ,tb1.bhf_code
+			    ,tb2.om_nm
+			    ,tb1.em_no
+			    ,tb1.em_id
+			    ,tb1.em_nm
+			    ,tb1.use_at
+			    , max(day_01) as day_01, max(day_02) as day_02, max(day_03) as day_03, max(day_04) as day_04, max(day_05) as day_05
+			    , max(day_06) as day_06, max(day_07) as day_07, max(day_08) as day_08, max(day_09) as day_09, max(day_10) as day_10
+			    , max(day_11) as day_11, max(day_12) as day_12, max(day_13) as day_13, max(day_14) as day_14, max(day_15) as day_15
+			    , max(day_16) as day_16, max(day_17) as day_17, max(day_18) as day_18, max(day_19) as day_19, max(day_20) as day_20
+			    , max(day_21) as day_21, max(day_22) as day_22, max(day_23) as day_23, max(day_24) as day_24, max(day_25) as day_25
+			    , max(day_26) as day_26, max(day_27) as day_27, max(day_28) as day_28, max(day_29) as day_29, max(day_30) as day_30
+			    , max(day_31) as day_31
+			from tb_empl_manage tb1
+			  left outer join
+			     (select 
+			        a.cm_code
+			        ,a.bhf_code
+			        ,d.om_nm
+			        ,a.em_no
+			        ,a.em_id
+			        ,a.em_nm        
+			       ,if((concat(#{yyyyMm},'01') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_01
+			       ,if((concat(#{yyyyMm},'02') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_02
+			       ,if((concat(#{yyyyMm},'03') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_03
+			       ,if((concat(#{yyyyMm},'04') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_04
+			       ,if((concat(#{yyyyMm},'05') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_05
+			       ,if((concat(#{yyyyMm},'06') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_06
+			       ,if((concat(#{yyyyMm},'07') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_07
+			       ,if((concat(#{yyyyMm},'08') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_08
+			       ,if((concat(#{yyyyMm},'09') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_09
+			       ,if((concat(#{yyyyMm},'10') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_10
+			       ,if((concat(#{yyyyMm},'11') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_11
+			       ,if((concat(#{yyyyMm},'12') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_12
+			       ,if((concat(#{yyyyMm},'13') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_13
+			       ,if((concat(#{yyyyMm},'14') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_14
+			       ,if((concat(#{yyyyMm},'15') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_15
+			       ,if((concat(#{pre_yyyyMm},'16') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_16
+			       ,if((concat(#{pre_yyyyMm},'17') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_17
+			       ,if((concat(#{pre_yyyyMm},'18') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_18
+			       ,if((concat(#{pre_yyyyMm},'19') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_19
+			       ,if((concat(#{pre_yyyyMm},'20') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_20
+			       ,if((concat(#{pre_yyyyMm},'21') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_21
+			       ,if((concat(#{pre_yyyyMm},'22') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_22
+			       ,if((concat(#{pre_yyyyMm},'23') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_23
+			       ,if((concat(#{pre_yyyyMm},'24') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_24
+			       ,if((concat(#{pre_yyyyMm},'25') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_25
+			       ,if((concat(#{pre_yyyyMm},'26') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_26
+			       ,if((concat(#{pre_yyyyMm},'27') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_27
+			       ,if((concat(#{pre_yyyyMm},'28') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_28
+			       ,if((concat(#{pre_yyyyMm},'29') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_29
+			       ,if((concat(#{pre_yyyyMm},'30') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_30
+			       ,if((concat(#{pre_yyyyMm},'31') = b.dm_dt), (case when b.dm_vcatn_type is not null then c.c_ext1 when b.dm_lvffc_de is not null then concat(date_format(b.dm_attend_de,'%H:%i'),' ' ,'퇴근') when b.dm_attend_de is not null then date_format(b.dm_attend_de,'%H:%i') else '' end), '') as day_31
+			    from tb_empl_manage a
+			        left outer join tb_dclz_manage b 
+			              on a.em_no = b.em_no and (substring(b.dm_dt,1,6) = #{yyyyMm} or substring(b.dm_dt,1,6) = #{pre_yyyyMm}) and a.use_at = 'Y' and b.delete_at='N'        
+			        left outer join tb_code c
+			              on b.dm_vcatn_type = c.c_code
+			        left outer join tb_orgnzt_manage d
+			              on a.bhf_code = d.om_code and d.use_at='Y' and d.delete_at = 'N'
+			    where a.em_dty_code = '0000000008' 
+			      and (substring(b.dm_dt,1,6) = #{pre_yyyyMm} or substring(b.dm_dt,1,6) = #{yyyyMm}) 
+			    ) tb2
+			  on (tb1.bhf_code = tb2.bhf_code and tb1.em_no = tb2.em_no and tb1.use_at = 'Y' and tb1.delete_at='N')  
+			  where tb1.em_dty_code = '0000000008' 
+			   and tb1.bhf_code != '05262'
+			   and (tb1.use_at='Y' or (tb1.use_at ='N' AND tb1.em_retire_de &gt;= concat(#{yyyyMm}, '15')))
+				
+		    <if test="cm_code != null and !cm_code.equals('')">
+		    and tb1.cm_code = #{cm_code}
+		    </if>
+		    <if test="bhf_code != null and !bhf_code.equals('')">
+		    and tb1.bhf_code = #{bhf_code}
+		    </if>
+		    <if test="em_id != null and !em_id.equals('')">
+		    and tb1.em_id = #{em_id}
+		    </if>
+		    <if test="em_nm != null and !em_nm.equals('')">
+		    and tb1.em_nm like '%${em_nm}%'
+		    </if>
+		    group by cm_code
+				    ,bhf_code
+				    ,om_nm
+				    ,em_no
+				    ,em_id
+				    ,em_nm
+		  order by om_nm, em_nm
+    </select>
+</mapper>

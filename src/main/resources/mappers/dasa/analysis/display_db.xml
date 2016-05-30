@@ -1,0 +1,774 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="display">
+    <select id="displayList" resultType="com.dasa.analysis.vo.DisPlayVo">
+          select d_innb
+          	   , d_name
+          	   , rnd_code
+          	   , fixing_code
+          	   , rnd_child_code
+          	   , fixing_child_code
+          	from tb_display 
+          	where delete_at = 'N'
+    </select>
+    <select id="displayPrdList" parameterType="com.dasa.analysis.vo.DisPlayVo" resultType="com.dasa.analysis.vo.DisPlayVo">
+          select max(oi_nm) oi_nm
+			   , oi_nick_nm
+			   , OI.oi_sort_ordr
+			   , ifnull(DP.collect_at,'N') AS collect_at
+  			   , ifnull(DP.dp_innb ,'') AS dp_innb
+		    from tb_option_item OI
+		    left OUTER JOIN tb_display_prdlst DP
+			  ON OI.oi_nick_nm = DP.oi_nick_name
+		  	 and DP.d_innb = #{d_innb}
+		   where oi_type IN (#{fixing_code}, #{rnd_code})  
+		     and OI.use_at ='Y'
+		   group by oi_nick_nm
+		   ORDER BY OI.oi_sort_ordr
+    </select>
+    <insert id="displayPrdSave" parameterType="map" >
+		insert into tb_display_prdlst(
+			  dp_innb
+			, d_innb
+			, oi_nick_name
+			, collect_at
+			, delete_at
+			, regist_man
+			, updt_man
+			, regist_de
+			, updt_de
+		)
+		values(
+			  #{dp_innb, jdbcType=NUMERIC}
+			, #{d_innb, jdbcType=NUMERIC}
+			, #{oi_nick_name}
+			, #{collect_at}
+			, 'N'
+			, #{em_no}
+			, #{em_no}
+			, now()
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  collect_at = #{collect_at}
+			, updt_de = now()
+	</insert>
+	
+    <select id="displayPrdItemList" parameterType="com.dasa.analysis.vo.DisPlayVo" resultType="com.dasa.analysis.vo.DisPlayVo">
+          select max(oi_nm) oi_nm
+			   , oi_nick_nm
+			   , OI.oi_sort_ordr
+			   , ifnull(DPI.collect_at,'N') AS collect_at
+  			   , ifnull(DPI.dpi_innb ,'') AS dpi_innb
+        	   , OI.oi_type
+		    from tb_option_item OI
+		    left OUTER JOIN tb_display_prdlst_item DPI
+			  ON OI.oi_nick_nm = DPI.oi_nick_name
+			  AND DPI.dp_innb = #{dp_innb}
+		   where oi_type IN (#{fixing_code}, #{rnd_code}) 
+		     and OI.use_at ='Y'
+		   group by oi_nick_nm
+		   ORDER BY OI.oi_sort_ordr
+    </select>
+
+    
+	
+	
+	
+
+	
+	
+	
+	
+	<delete id="displayDeleteList" parameterType="String"  >
+		DELETE FROM tb_display_arr WHERE base_de =#{base_de} 
+	</delete>
+	
+	
+	
+	<insert id="displayPrdItemSave" parameterType="map" >
+		insert into tb_display_prdlst_item(
+			  dpi_innb
+			, dp_innb
+			, oi_nick_name
+			, collect_at
+			, delete_at
+			, regist_man
+			, updt_man
+			, regist_de
+			, updt_de
+		)
+		values(
+			  #{dpi_innb, jdbcType=NUMERIC}
+			, #{dp_innb, jdbcType=NUMERIC}
+			, #{oi_nick_name}
+			, #{collect_at}
+			, 'N'
+			, #{em_no}
+			, #{em_no}
+			, now()
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  collect_at = #{collect_at}
+			, updt_de = now()
+	</insert>
+	
+	
+	
+	
+	
+	<!-- ========================================사원별 진열률======111111========================================= -->
+	<select id="displayPrdItemColumnCheck1" parameterType="String"  resultType="map">
+		SHOW COLUMNS FROM tb_display_dasa_arr where field = #{colunm}
+	</select>
+	<update id="displayPrdItemColumnAdd1" parameterType="map" >
+		ALTER TABLE tb_display_dasa_arr ADD COLUMN `${colunm}` VARCHAR(255) DEFAULT NULL
+	</update>
+	<!-- ========================================사원별 진열률======111111========================================= -->
+	
+	<!-- ========================================사원별 보조진열====333333========================================= -->
+	<select id="displayPrdItemColumnCheck3" parameterType="String"  resultType="map">
+		SHOW COLUMNS FROM tb_display_dasa_big where field = #{colunm}
+	</select>
+	<update id="displayPrdItemColumnAdd3" parameterType="map" >
+		ALTER TABLE tb_display_dasa_big ADD COLUMN `${colunm}` VARCHAR(255) DEFAULT NULL
+	</update>
+	<!-- ========================================사원별 보조진열====333333========================================= -->
+	
+	
+	
+	
+	<!-- ========================================관리업체별 진열률======444444========================================= -->
+	<select id="displayPrdItemColumnCheck4" parameterType="String"  resultType="map">
+		SHOW COLUMNS FROM tb_display_arr where field = #{colunm}
+	</select>
+	<update id="displayPrdItemColumnAdd4" parameterType="map" >
+		ALTER TABLE tb_display_arr ADD COLUMN `${colunm}` VARCHAR(255) DEFAULT NULL
+	</update>
+	<!-- ========================================관리업체별 진열률======444444========================================= -->
+	
+	
+	<!-- ========================================관리업체별 보조진열현황666666========================================== -->
+	
+	<select id="displayPrdItemColumnCheck6" parameterType="String"  resultType="map">
+		SHOW COLUMNS FROM tb_display_big where field = #{colunm}
+	</select>
+	<update id="displayPrdItemColumnAdd6" parameterType="map" >
+		ALTER TABLE tb_display_big ADD COLUMN `${colunm}` VARCHAR(255) DEFAULT NULL
+	</update>
+	<!-- ========================================관리업체별 보조진열현황666666========================================= -->
+	
+	
+	<select id="displayPrdColumnCheck5" parameterType="String"  resultType="map">
+		SHOW COLUMNS FROM tb_display_trt where field = #{colunm}
+	</select>
+	<update id="displayPrdColumnAdd5" parameterType="map" >
+		ALTER TABLE tb_display_trt ADD COLUMN `${colunm}` VARCHAR(255) DEFAULT NULL
+	</update>
+	
+		<!-- ========================================관리업체별 PD매대======777777========================================= -->
+	
+	<select id="displayPrdItemColumnCheck7" parameterType="String"  resultType="map">
+		SHOW COLUMNS FROM tb_display_pd where field = #{colunm}
+	</select>
+	<update id="displayPrdItemColumnAdd7" parameterType="map" >
+		ALTER TABLE tb_display_pd ADD COLUMN `${colunm}` VARCHAR(255) DEFAULT NULL
+	</update>
+	<!-- ========================================관리업체별PD매대=======7777777======================================== -->
+	
+
+
+
+
+
+
+
+
+
+
+
+
+	<!-- 신규 필드 저장 -->
+	<insert id="displayPrdSaveInsert" parameterType="map"  useGeneratedKeys="true" >
+		insert into tb_display_prdlst(
+			  d_innb
+			, oi_nick_name
+			, collect_at
+			, delete_at
+			, regist_man
+			, updt_man
+			, regist_de
+			, updt_de
+		)
+		values(
+			  #{d_innb, jdbcType=NUMERIC}
+			, #{oi_nick_name}
+			, #{collect_at}
+			, 'N'
+			, #{em_no}
+			, #{em_no}
+			, now()
+			, now()
+		)
+		<selectKey resultType="String" keyProperty="dp_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 신규 필드 수정 -->
+    <insert id="displayPrdSaveUpdate" parameterType="map" >
+		update tb_display_prdlst
+		   set collect_at = #{collect_at}
+			, updt_de = now()
+		where dp_innb = #{dp_innb}
+	</insert>
+
+	
+	
+	<!-- 신규 필드 아이템 저장 -->
+	<insert id="displayPrdItemSaveInsert" parameterType="map"  useGeneratedKeys="true" >
+		insert into tb_display_prdlst_item(
+			  dp_innb
+			, oi_nick_name
+			, collect_at
+			, delete_at
+			, regist_man
+			, updt_man
+			, regist_de
+			, updt_de
+		)
+		values(
+			  #{dp_innb, jdbcType=NUMERIC}
+			, #{oi_nick_name}
+			, #{collect_at}
+			, 'N'
+			, #{em_no}
+			, #{em_no}
+			, now()
+			, now()
+		)
+		<selectKey resultType="String" keyProperty="dpi_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 신규 필드 아이템 수정 -->
+	<insert id="displayPrdItemSaveUpdate" parameterType="map" >
+		update tb_display_prdlst_item
+		   set collect_at = #{collect_at}
+			, updt_de = now()
+		where dpi_innb = #{dpi_innb}
+	</insert>
+	
+	<!-- 신규 배치 항목 조회 -->
+	<select id="displayColumnList" parameterType="String"  resultType="com.dasa.analysis.vo.DisPlayColunmVo">
+		SELECT DP.dp_innb AS group_id 
+		     , DP.oi_nick_name AS group_nm 
+		     , DPI.dpi_innb AS item_id 
+		     , DPI.oi_nick_name AS item_nm 
+		  FROM tb_display_prdlst DP
+		  LEFT OUTER JOIN tb_display_prdlst_item DPI
+		    ON DP.dp_innb = DPI.dp_innb
+		   AND DPI.collect_at='Y'
+		 WHERE DP.d_innb = #{d_innb}
+		   AND DP.collect_at = 'Y'
+       	   AND DP.delete_at = 'N'
+       	   AND DPI.delete_at = 'N'
+	</select>
+	
+	<!-- 신규 배치 항목 조회 -->
+	<select id="displayMainColumnList" parameterType="String"  resultType="com.dasa.analysis.vo.DisPlayColunmVo">
+		SELECT DP.dp_innb AS group_id 
+		     , DP.oi_nick_name AS group_nm 
+		  FROM tb_display_prdlst DP
+		 WHERE DP.d_innb = #{d_innb}
+		   AND DP.collect_at = 'Y'
+       	   AND DP.delete_at = 'N'
+	</select>
+	
+	<!-- 지점 코드 목록 조회 -->
+	<select id="displayOmList" resultType="String">
+		select om_code 
+		  from tb_orgnzt_manage
+		where om_orgnzt_se = '1'
+		and use_at = 'Y'
+		and delete_at = 'N'
+	</select>
+	<!-- 신규 필드체크 -->
+	<select id="displayColumnCheck" parameterType="map"  resultType="map">
+		SHOW COLUMNS FROM ${table} where field = #{colunm}
+	</select>
+	<!-- 신규 필드체크 등록 -->
+	<update id="displayPrdItemColumnAdd" parameterType="map" >
+		ALTER TABLE ${table} ADD COLUMN `${colunm}` VARCHAR(255) DEFAULT NULL
+	</update>
+	
+	
+	<!-- 신규 배치 항목 조회 -->
+	<select id="displayViewColumnList" parameterType="String"  resultType="map">
+		SELECT DP.dp_innb AS group_id 
+		     , DP.oi_nick_name AS group_nm 
+		     , DPI.dpi_innb AS item_id 
+		     , DPI.oi_nick_name AS item_nm 
+		  FROM tb_display_prdlst DP
+		  LEFT OUTER JOIN tb_display_prdlst_item DPI
+		    ON DP.dp_innb = DPI.dp_innb
+		   AND DPI.collect_at='Y'
+		 WHERE DP.d_innb = #{d_innb}
+		   AND DPI.collect_at='Y'
+		   AND DP.collect_at = 'Y'
+       	   AND DP.delete_at = 'N'
+       	   AND DPI.delete_at = 'N'
+	</select>	
+	
+	<!-- 진열율 -->
+	<select  id="displayArrListCnt"  parameterType="com.vertexid.vo.NaviVo" resultType="int">
+		SELECT count(*) cnt
+		FROM tb_display_arr
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+		 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+	
+	<!-- 통계 진열률 리스트 -->
+	<select  id="displayArrBodyList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT da_innb
+			 , date_format(da_date,'%Y-%m-%d') da_date
+			 , cg_code
+			 , cg_nm
+			 , me_code
+			 , me_nm
+			 , sm_code
+			 , sm_nm
+			 , em_nm
+			 , em_no
+			 , ifnull(sm_odr,'') AS sm_odr
+			 , base_de
+	   		<foreach collection="columnArr" item="item">
+			, ${item.colunm_id}_${item.group_id}_${item.item_id}
+			, #{item.colunm_id} AS ${item.colunm_id}_${item.group_id}_${item.item_id}_colunm_id
+			, #{item.group_id} AS ${item.colunm_id}_${item.group_id}_${item.item_id}_group_id
+	        </foreach>
+		FROM tb_display_arr
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	    <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	   	 order by if(em_no,'1','') DESC, cg_nm,em_nm, me_nm , sm_nm
+	   	 ${pagingEnd}
+	</select>
+	<!-- 통계 진열률 합계 리스트 -->
+	<select  id="displayArrSumList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT date_format(da_date,'%Y-%m-%d') da_date
+	   		<foreach collection="columnArr" item="item">
+	   			<choose>
+	   				<when test="item.colunm_id.equals('ent') ">
+					, SUM(${item.colunm_id}_${item.group_id}_${item.item_id}) AS ${item.colunm_id}_${item.group_id}_${item.item_id}
+	   				</when>
+	   				<otherwise>
+					, ROUND(AVG(${item.colunm_id}_${item.group_id}_${item.item_id}),1) AS ${item.colunm_id}_${item.group_id}_${item.item_id}
+	   				</otherwise>
+	   			</choose>
+	        </foreach>
+		FROM tb_display_arr
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	     <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+	
+	
+	<!-- 보조진열 -->
+	<select  id="displayBigListCnt"  parameterType="com.vertexid.vo.NaviVo" resultType="int">
+		SELECT count(*) cnt
+		FROM tb_display_big
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+		 AND cg_code != 'Z1'	    
+		 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+	
+	<!-- 통계 보조진열 리스트 -->
+	<select  id="displayBigBodyList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT da_innb
+			 , date_format(da_date,'%Y-%m-%d') da_date
+			 , cg_code
+			 , cg_nm
+			 , me_code
+			 , me_nm
+			 , sm_code
+			 , sm_nm
+			 , em_nm
+			 , em_no
+			 , ifnull(sm_odr,'') AS sm_odr
+			 , base_de
+	   		<foreach collection="columnArr" item="item">
+			, ${item.colunm_id}_${item.group_id}_${item.item_id}
+			, #{item.colunm_id} AS ${item.colunm_id}_${item.group_id}_${item.item_id}_colunm_id
+			, #{item.group_id} AS ${item.colunm_id}_${item.group_id}_${item.item_id}_group_id
+	        </foreach>
+		FROM tb_display_big
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	     <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	   	 order by if(em_no,'1','') DESC, cg_nm,em_nm, me_nm , sm_nm
+	   	 ${pagingEnd}
+	</select>
+	<!-- 통계 진열률 합계 리스트 -->
+	<select  id="displayBigSumList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT date_format(da_date,'%Y-%m-%d') da_date
+	   		<foreach collection="columnArr" item="item">
+				, SUM(${item.colunm_id}_${item.group_id}_${item.item_id}) AS ${item.colunm_id}_${item.group_id}_${item.item_id}
+	        </foreach>
+		FROM tb_display_big
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	     <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+	
+	
+	
+	
+	
+	
+	<!-- 통계 PD매대 리스트 -->
+	<select  id="displayPdListCnt"  parameterType="com.vertexid.vo.NaviVo" resultType="int">
+		SELECT count(*) cnt
+		FROM tb_display_pd
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+		 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+	<select  id="displayPdBodyList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT da_innb
+			 , date_format(da_date,'%Y-%m-%d') da_date
+			 , cg_code
+			 , cg_nm
+			 , me_code
+			 , me_nm
+			 , sm_code
+			 , sm_nm
+			 , em_nm
+			 , em_no
+			 , ifnull(sm_odr,'') AS sm_odr
+			 , base_de
+	   		<foreach collection="columnArr" item="item">
+			, ${item.colunm_id}_${item.group_id}_${item.item_id}
+			, #{item.colunm_id} AS ${item.colunm_id}_${item.group_id}_${item.item_id}_colunm_id
+			, #{item.group_id} AS ${item.colunm_id}_${item.group_id}_${item.item_id}_group_id
+	        </foreach>
+		FROM tb_display_pd
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	   	 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	   	 order by if(em_no,'1','') DESC, cg_nm,em_nm, me_nm , sm_nm
+	   	 ${pagingEnd}
+	</select>
+	
+	
+	<!-- 통계 PD매대 합계 리스트 -->
+	<select  id="displayPdSumList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT date_format(da_date,'%Y-%m-%d') da_date
+	   		<foreach collection="columnArr" item="item">
+				, SUM(${item.colunm_id}_${item.group_id}_${item.item_id}) AS ${item.colunm_id}_${item.group_id}_${item.item_id}
+	        </foreach>
+		FROM tb_display_pd
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	   	 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+	
+	
+	<!-- 통계 TRT매대 리스트 -->
+	<select  id="displayTrtListCnt"  parameterType="com.vertexid.vo.NaviVo" resultType="int">
+		SELECT count(*) cnt
+		FROM tb_display_trt
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+		 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+	<select  id="displayTrtBodyList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT da_innb
+			 , date_format(da_date,'%Y-%m-%d') da_date
+			 , cg_code
+			 , cg_nm
+			 , me_code
+			 , me_nm
+			 , sm_code
+			 , sm_nm
+			 , em_nm
+			 , em_no
+			 , ifnull(sm_odr,'') AS sm_odr
+			 , base_de
+	   		<foreach collection="columnArr" item="item">
+			, ${item.colunm_id}_${item.group_id}
+	        </foreach>
+		FROM tb_display_trt
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	   	 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	   	 order by if(em_no,'1','') DESC, cg_nm,em_nm, me_nm , sm_nm
+	   	 ${pagingEnd}
+	</select>
+	
+	
+	<!-- 통계 TRT매대 합계 리스트 -->
+	<select  id="displayTrtSumList" resultType="map" parameterType="com.dasa.analysis.vo.DisplayGridVo" >
+		SELECT date_format(da_date,'%Y-%m-%d') da_date
+	   		<foreach collection="columnArr" item="item">
+				, SUM(${item.colunm_id}_${item.group_id}) AS ${item.colunm_id}_${item.group_id}
+	        </foreach>
+		FROM tb_display_trt
+<!-- 	   WHERE da_date = date_format(now(),'%Y-%m-%d') -->
+	   WHERE cm_code = #{cm_code}
+	     AND cg_code != 'Z1'
+	   	 <if test="params != null and params.em_nm!=null and !params.em_nm.equals('')">
+	     AND em_nm like '%${params.em_nm}%'     
+	   	 </if>
+	   	 <if test="params != null and params.om_code!=null and !params.om_code.equals('')">
+	     AND om_code = #{params.om_code}     
+	   	 </if>
+	   	 <if test="params != null and params.cg_code!=null and !params.cg_code.equals('')">
+	     AND cg_code = #{params.cg_code}      
+	   	 </if>
+	   	 <if test="params != null and params.me_code!=null and !params.me_code.equals('')">
+	     AND me_code = #{params.me_code}     
+	   	 </if>
+	   	 <if test="params != null and params.sm_odr!=null and !params.sm_odr.equals('')">
+	     AND sm_odr = #{params.sm_odr}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area1!=null and !params.sm_area1.equals('')">
+	     AND sm_area1 = #{params.sm_area1}      
+	   	 </if>
+	   	 <if test="params != null and params.sm_area2!=null and !params.sm_area2.equals('')">
+	     AND sm_area2 = #{params.sm_area2}      
+	   	 </if>
+	</select>
+</mapper>

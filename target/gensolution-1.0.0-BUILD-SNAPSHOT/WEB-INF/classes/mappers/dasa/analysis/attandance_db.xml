@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="attandance">
+    <select id="selectListCount" parameterType="com.vertexid.vo.NaviVo" resultType="integer">
+          select 
+		  		 count(*)
+		  from tb_emp_attandance A, tb_code B, tb_empl_manage C
+		  where A.dty_code = B.c_code 
+		   and A.ea_em_no = C.em_no
+		   and ea_yy = #{params.ea_yy}
+		    and ea_mm = #{params.ea_mm}
+		    <if test="params.cm_code != null and !params.cm_code.equals('')">
+		    and A.cm_code = #{params.cm_code}
+		    </if>
+		    <if test="params.bhf_code != null and !params.bhf_code.equals('')">
+		    and A.bhf_code = #{params.bhf_code}
+		    </if>
+		    <if test="params.dty_code != null and !params.dty_code.equals('')">
+		    and A.dty_code = #{params.dty_code}
+		    </if>
+		    <if test="params.ea_em_no != null and !params.ea_em_no.equals('')">
+		    and C.em_id = #{params.ea_em_no}
+		    </if>
+		    <if test="params.ea_em_nm != null and !params.ea_em_nm.equals('')">
+		    and ea_em_nm like '%${params.ea_em_nm}%'
+		    
+		    and A.bhf_code != '05262'
+		    </if>
+    </select>
+
+    <select id="selectList" resultType="com.dasa.analysis.vo.AttandanceVo" parameterType="com.vertexid.vo.NaviVo">
+        ${pagingStart}
+          select 
+			   A.ea_yy
+			  ,A.ea_mm
+			  ,C.em_id as ea_em_no
+			  ,A.ea_em_nm
+			  ,A.cm_code
+			  ,A.bhf_code
+			  ,D.om_nm as bhf_name
+			  ,A.team_code
+			  ,A.dty_code
+			  ,B.c_name as dty_name
+			  ,date_format(A.em_ecny_de,'%Y-%m-%d')  as em_ecny_de
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_01, concat(#{params.ea_yy}, #{params.ea_mm}, '01')) AS ea_day_01
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_02, concat(#{params.ea_yy}, #{params.ea_mm}, '02')) AS ea_day_02
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_03, concat(#{params.ea_yy}, #{params.ea_mm}, '03')) AS ea_day_03
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_04, concat(#{params.ea_yy}, #{params.ea_mm}, '04')) AS ea_day_04
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_05, concat(#{params.ea_yy}, #{params.ea_mm}, '05')) AS ea_day_05
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_06, concat(#{params.ea_yy}, #{params.ea_mm}, '06')) AS ea_day_06
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_07, concat(#{params.ea_yy}, #{params.ea_mm}, '07')) AS ea_day_07
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_08, concat(#{params.ea_yy}, #{params.ea_mm}, '08')) AS ea_day_08
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_09, concat(#{params.ea_yy}, #{params.ea_mm}, '09')) AS ea_day_09
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_10, concat(#{params.ea_yy}, #{params.ea_mm}, '10')) AS ea_day_10
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_11, concat(#{params.ea_yy}, #{params.ea_mm}, '11')) AS ea_day_11
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_12, concat(#{params.ea_yy}, #{params.ea_mm}, '12')) AS ea_day_12
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_13, concat(#{params.ea_yy}, #{params.ea_mm}, '13')) AS ea_day_13
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_14, concat(#{params.ea_yy}, #{params.ea_mm}, '14')) AS ea_day_14
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_15, concat(#{params.ea_yy}, #{params.ea_mm}, '15')) AS ea_day_15
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_16, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '16')) AS ea_day_16
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_17, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '17')) AS ea_day_17
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_18, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '18')) AS ea_day_18
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_19, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '19')) AS ea_day_19
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_20, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '20')) AS ea_day_20
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_21, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '21')) AS ea_day_21
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_22, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '22')) AS ea_day_22
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_23, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '23')) AS ea_day_23
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_24, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '24')) AS ea_day_24
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_25, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '25')) AS ea_day_25
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_26, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '26')) AS ea_day_26
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_27, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '27')) AS ea_day_27
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_28, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '28')) AS ea_day_28
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_29, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '29')) AS ea_day_29
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_30, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '30')) AS ea_day_30
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_31, concat(#{params.ea_pre_yy}, #{params.ea_pre_mm}, '31')) AS ea_day_31
+			  ,ea_std_work_days
+			  ,ea_holidays
+			  ,ea_weekdays_work
+			  ,ea_holidays_work
+			  ,ea_work_overtime
+			  ,ea_actual_work_days
+			  ,ea_base_time
+			  ,ea_absent_days
+			  ,ea_annual_leave
+			  ,ea_summer_holidays
+			  ,ea_cc_leave
+			  ,ea_education
+			  ,ea_sick_leave
+			  ,FORMAT(ea_std_trans_fee, 0)  as ea_std_trans_fee
+			  ,FORMAT(ea_trans_fee, 0) as ea_trans_fee
+			  ,ea_etc
+			  ,ea_etc_memo
+			  ,A.regist_de
+		  from tb_emp_attandance A, tb_code B, tb_empl_manage C, tb_orgnzt_manage D
+		  where A.dty_code = B.c_code 
+		   and A.ea_em_no = C.em_no
+		   and A.bhf_code = D.om_code
+		   and ea_yy = #{params.ea_yy}
+		    and ea_mm = #{params.ea_mm}
+		    
+		    <if test="params.cm_code != null and !params.cm_code.equals('')">
+		    and A.cm_code = #{params.cm_code}
+		    </if>
+		    <if test="params.bhf_code != null and !params.bhf_code.equals('')">
+		    and A.bhf_code = #{params.bhf_code}
+		    </if>
+		    <if test="params.dty_code != null and !params.dty_code.equals('')">
+		    and A.dty_code = #{params.dty_code}
+		    </if>
+		    <if test="params.ea_em_no != null and !params.ea_em_no.equals('')">
+		    and C.em_id = #{params.ea_em_no}
+		    </if>
+		    <if test="params.ea_em_nm != null and !params.ea_em_nm.equals('')">
+		    and ea_em_nm like '%${params.ea_em_nm}%'
+		    </if>
+		    
+		    and A.bhf_code != '05262'
+		    and (C.use_at='Y' or(C.use_at ='N' AND C.em_retire_de &gt;= concat(#{params.ea_yy}, #{params.ea_mm}, '15'))) 
+		    
+		  order by D.om_nm, A.ea_em_nm
+        ${pagingEnd}
+    </select>
+    
+    <select id="selectAllList" resultType="com.dasa.analysis.vo.AttandanceVo" parameterType="com.dasa.analysis.vo.AttandanceVo">
+          select 
+			   A.ea_yy
+			  ,A.ea_mm
+			  ,C.em_id as ea_em_no
+			  ,A.ea_em_nm
+			  ,A.cm_code
+			  ,A.bhf_code
+			  ,D.om_nm as bhf_name
+			  ,A.team_code
+			  ,A.dty_code
+			  ,replace(B.c_name, '여사원', '') as dty_name
+			  ,date_format(A.em_ecny_de,'%Y-%m-%d')  as em_ecny_de
+			  
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_01, concat(#{ea_yy}, #{ea_mm}, '01')) AS ea_day_01
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_02, concat(#{ea_yy}, #{ea_mm}, '02')) AS ea_day_02
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_03, concat(#{ea_yy}, #{ea_mm}, '03')) AS ea_day_03
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_04, concat(#{ea_yy}, #{ea_mm}, '04')) AS ea_day_04
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_05, concat(#{ea_yy}, #{ea_mm}, '05')) AS ea_day_05
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_06, concat(#{ea_yy}, #{ea_mm}, '06')) AS ea_day_06
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_07, concat(#{ea_yy}, #{ea_mm}, '07')) AS ea_day_07
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_08, concat(#{ea_yy}, #{ea_mm}, '08')) AS ea_day_08
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_09, concat(#{ea_yy}, #{ea_mm}, '09')) AS ea_day_09
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_10, concat(#{ea_yy}, #{ea_mm}, '10')) AS ea_day_10
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_11, concat(#{ea_yy}, #{ea_mm}, '11')) AS ea_day_11
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_12, concat(#{ea_yy}, #{ea_mm}, '12')) AS ea_day_12
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_13, concat(#{ea_yy}, #{ea_mm}, '13')) AS ea_day_13
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_14, concat(#{ea_yy}, #{ea_mm}, '14')) AS ea_day_14
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_15, concat(#{ea_yy}, #{ea_mm}, '15')) AS ea_day_15
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_16, concat(#{ea_pre_yy}, #{ea_pre_mm}, '16')) AS ea_day_16
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_17, concat(#{ea_pre_yy}, #{ea_pre_mm}, '17')) AS ea_day_17
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_18, concat(#{ea_pre_yy}, #{ea_pre_mm}, '18')) AS ea_day_18
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_19, concat(#{ea_pre_yy}, #{ea_pre_mm}, '19')) AS ea_day_19
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_20, concat(#{ea_pre_yy}, #{ea_pre_mm}, '20')) AS ea_day_20
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_21, concat(#{ea_pre_yy}, #{ea_pre_mm}, '21')) AS ea_day_21
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_22, concat(#{ea_pre_yy}, #{ea_pre_mm}, '22')) AS ea_day_22
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_23, concat(#{ea_pre_yy}, #{ea_pre_mm}, '23')) AS ea_day_23
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_24, concat(#{ea_pre_yy}, #{ea_pre_mm}, '24')) AS ea_day_24
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_25, concat(#{ea_pre_yy}, #{ea_pre_mm}, '25')) AS ea_day_25
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_26, concat(#{ea_pre_yy}, #{ea_pre_mm}, '26')) AS ea_day_26
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_27, concat(#{ea_pre_yy}, #{ea_pre_mm}, '27')) AS ea_day_27
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_28, concat(#{ea_pre_yy}, #{ea_pre_mm}, '28')) AS ea_day_28
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_29, concat(#{ea_pre_yy}, #{ea_pre_mm}, '29')) AS ea_day_29
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_30, concat(#{ea_pre_yy}, #{ea_pre_mm}, '30')) AS ea_day_30
+			  ,fn_get_attandance(A.bhf_code, ea_em_no, A.dty_code, ea_day_31, concat(#{ea_pre_yy}, #{ea_pre_mm}, '31')) AS ea_day_31
+			  
+			  ,ea_std_work_days
+			  ,ea_holidays
+			  ,ea_weekdays_work
+			  ,ea_holidays_work
+			  ,ea_work_overtime
+			  ,ea_actual_work_days
+			  ,ea_base_time
+			  ,ea_absent_days
+			  ,ea_annual_leave
+			  ,ea_summer_holidays
+			  ,ea_cc_leave
+			  ,ea_education
+			  ,ea_sick_leave
+			  ,FORMAT(ea_std_trans_fee, 0) as ea_std_trans_fee 
+			  ,FORMAT(ea_trans_fee, 0) as ea_trans_fee
+			  ,ea_etc
+			  ,ea_etc_memo
+			  ,A.regist_de
+		  from tb_emp_attandance A, tb_code B, tb_empl_manage C, tb_orgnzt_manage D
+		  where A.dty_code = B.c_code 
+		   and A.ea_em_no = C.em_no
+		   and ea_yy = #{ea_yy}
+		    and ea_mm = #{ea_mm}
+		    and A.bhf_code = D.om_code
+		    <if test="cm_code != null and !cm_code.equals('')">
+		    and A.cm_code = #{cm_code}
+		    </if>
+		    <if test="bhf_code != null and !bhf_code.equals('')">
+		    and A.bhf_code = #{bhf_code}
+		    </if>
+		    <if test="dty_code != null and !dty_code.equals('')">
+		    and A.dty_code = #{dty_code}
+		    </if>
+		    <if test="ea_em_no != null and !ea_em_no.equals('')">
+		    and C.em_id = #{ea_em_no}
+		    </if>
+		    <if test="ea_em_nm != null and !ea_em_nm.equals('')">
+		    and ea_em_nm like '%${ea_em_nm}%'
+		    
+		    and A.bhf_code != '05262'
+		    and (C.use_at='Y' or(C.use_at ='N' AND C.em_retire_de &gt;= concat(#{ea_yy}, #{ea_mm}, '15'))) 
+		    </if>
+		  order by D.om_nm, A.ea_em_nm
+    </select>
+    
+    <update id="sp_summary_emp_attandance"   parameterType="com.dasa.analysis.vo.AttandanceVo" statementType="CALLABLE">
+        {call sp_summary_emp_attandance(
+        	  	#{ea_yy          , mode=IN, jdbcType=VARCHAR, javaType=string}
+        	  ,	#{ea_mm          , mode=IN, jdbcType=VARCHAR, javaType=string}
+        	  ,	#{ea_pre_yy      , mode=IN, jdbcType=VARCHAR, javaType=string}
+        	  ,	#{ea_pre_mm      , mode=IN, jdbcType=VARCHAR, javaType=string}
+        )}
+    </update>
+    
+</mapper>

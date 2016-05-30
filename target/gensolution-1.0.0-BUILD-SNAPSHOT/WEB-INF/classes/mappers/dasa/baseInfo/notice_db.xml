@@ -1,0 +1,718 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Notice">
+
+    <select id="noticeListCnt" resultType="int" parameterType="com.vertexid.vo.NaviVo">
+      select count(*) from (
+	    select b.bm_innb
+          from tb_bbs_manage b,
+               tb_empl_manage e,
+               tb_bbs_target p
+         where b.delete_at = 'N'
+           and b.bm_code = '1'
+           and b.regist_man = e.em_no
+           and b.bm_innb = p.bm_innb
+        <if test="params.cm_code != null and !params.cm_code.equals('') ">
+            and b.cm_code = #{params.cm_code}
+        </if>
+
+        <!--모바일 인터페이스 사용조건문 시작-->
+        <choose>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag == 2">
+            <!--팀장인 경우-->
+            <![CDATA[
+            and (
+                 /*지점*/
+                 b.bm_innb in (select c.bm_innb
+                                 from tb_bbs_target c,
+                                      tb_empl_manage d
+                                where c.bm_innb = b.bm_innb
+                                  and c.om_code = d.bhf_code
+                                  and d.em_no != 'superuser'
+                                  and d.use_at = 'Y'
+                                  and d.delete_at = 'N'
+                                  and d.em_no = #{params.em_no})
+                  or
+                  /*매장*/
+                  b.bm_innb in (select c.bm_innb
+                                  from tb_bbs_target c,
+                                       tb_empl_manage d,
+                                       tb_str_manage e
+                                 where c.bm_innb = b.bm_innb
+                                   and c.sm_code = e.sm_code
+                                   and d.em_no != 'superuser'
+                                   and d.use_at = 'Y'
+                                   and d.delete_at = 'N'
+                                   and e.use_at = 'Y'
+                                   and e.delete_at = 'N'
+                                   and d.bhf_code = e.om_code
+                                   and d.em_no = #{params.em_no})
+                )
+            ]]>
+            </when>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag > 2">
+            <!--여사원인 경우-->
+            <![CDATA[
+            and (
+                 /*지점*/
+                 b.bm_innb in (select c.bm_innb
+                                 from tb_bbs_target c,
+                                      tb_empl_manage d
+                                where c.bm_innb = b.bm_innb
+                                  and c.om_code = d.bhf_code
+                                  and d.em_no != 'superuser'
+                                  and d.use_at = 'Y'
+                                  and d.delete_at = 'N'
+                                  and d.em_no = #{params.em_no})
+                  or
+                  /*매장*/
+                  b.bm_innb in (select c.bm_innb
+                                  from tb_bbs_target c,
+                                       tb_empl_manage d,
+                                       tb_str_empl e
+                                 where c.bm_innb = b.bm_innb
+                                   and c.sm_code = e.sm_code
+                                   and d.em_no != 'superuser'
+                                   and d.use_at = 'Y'
+                                   and d.delete_at = 'N'
+                                   and e.delete_at = 'N'
+                                   and d.em_no = e.em_no
+                                   and d.em_no = #{params.em_no})
+                )
+            ]]>
+            
+            <if test="params.auth_flag == 3">
+            <![CDATA[
+           	 AND (b.fixrnd <> '0000000007' OR b.fixrnd IS NULL)
+           	]]>
+       		</if>
+       		
+            <if test="params.auth_flag == 4">
+           	 <![CDATA[
+           	  AND (b.fixrnd <> '0000000006' OR b.fixrnd IS NULL)
+           	]]>
+       		</if>
+       		
+       		<if test="params.team_val != null and !params.team_val.equals('')">
+	       		and p.tm_code = #{params.team_val}
+	       	</if>
+            </when>
+        </choose>
+        <!--모바일 인터페이스 사용조건문 끝-->
+        
+		<if test="params.teamWord != null and !params.teamWord.equals('')">
+       		and p.tm_code = #{params.teamWord}
+       	</if>
+       	
+        <choose>
+            <when test="params.word != null and !params.word.equals('') and params.key.equals('sj') ">
+                and bm_sj like '%${params.word}%'
+            </when>
+            <when test="params.word != null and !params.word.equals('') and params.key.equals('cn') ">
+                and bm_cn like '%${params.word}%'
+            </when>
+        </choose>
+        <choose>
+            <when test="params.search_date_from!=null and !params.search_date_from.equals('') and params.search_date_to!=null and !params.search_date_to.equals('')">
+               and date_format(b.regist_de, '%Y%m%d') between replace(#{params.search_date_from}, '-', '') and replace(#{params.search_date_to}, '-', '')
+            </when>
+        </choose>
+        <if test="dash_flag != null and !dash_flag.equals('') and dash_flag.equals('YY') ">
+           and date_format(b.regist_de, '%Y%m%d') >= DATE_ADD(date_format(now(), '%Y%m%d'), INTERVAL - 1 month)
+      	</if>
+        group by b.bm_innb, b.regist_de
+      ) as aa
+      where 1=1
+       <if test="params.jijumOmCode != null and !params.jijumOmCode.equals('') and params.jijumWord.equals('') ">
+            and aa.bm_innb in (
+                              select bm_innb
+                                from tb_bbs_target c
+                               where c.bm_innb = aa.bm_innb
+                                 and c.om_code = #{params.jijumOmCode}
+                             )
+        </if>
+        <if test="params.jijumOmCode.equals('') and params.jijumWord != null and !params.jijumWord.equals('')">
+            and aa.bm_innb in (
+                              select c.bm_innb
+                                from tb_bbs_target c ,tb_str_manage s
+                               where c.bm_innb = aa.bm_innb
+                                 and c.sm_code = s.sm_code
+                                 and s.sm_nm like '%${params.jijumWord}%'
+                             )
+        </if>
+        <if test="params.jijumOmCode != null and !params.jijumOmCode.equals('') and params.jijumWord != null and !params.jijumWord.equals('')">
+        and (
+             aa.bm_innb in (select bm_innb
+             				  from tb_bbs_target c 
+             				 where c.bm_innb = aa.bm_innb  
+             				   and c.om_code = #{params.jijumOmCode} 
+             			   )
+             and
+             aa.bm_innb in (
+                           select c.bm_innb
+                             from tb_bbs_target c ,tb_str_manage s
+                            where c.bm_innb = aa.bm_innb
+                              and c.sm_code = s.sm_code
+                              and s.sm_nm like '%${params.jijumWord}%'
+                          )
+            )
+        </if>
+    </select>
+
+    <select id="noticeList" resultType="com.dasa.communication.vo.NoticeVo" parameterType="com.vertexid.vo.NaviVo">
+    ${pagingStart}
+    select abc.* from (
+        select b.bm_innb AS 'bm_innb'
+             , bm_sj AS 'bm_sj'
+             , e.em_nm AS 'regist_man'
+             , (select count(*) from tb_attach_item  where am_no = b.atchmnfl_innb and delete_at = 'N') AS ai_cnt
+             , e.em_dty_code AS 'em_dty_code'
+             , date_format(b.regist_de, '%Y-%m-%d') AS 'regist_de'
+             , fixrnd AS 'fix_rnd'
+          from tb_bbs_manage b,
+               tb_empl_manage e,
+               tb_bbs_target p
+         where b.delete_at = 'N'
+         and   b.bm_code = '1'
+         and   b.regist_man = e.em_no
+         and   b.bm_innb = p.bm_innb
+        <if test="params.cm_code != null and !params.cm_code.equals('') ">
+            and b.cm_code = #{params.cm_code}
+        </if>
+
+        <!--모바일 인터페이스 사용조건문 시작-->
+        <choose>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag == 2">
+            <!--팀장인 경우-->
+            <![CDATA[
+            and (
+                 /*지점*/
+                 b.bm_innb in (select c.bm_innb
+                                 from tb_bbs_target c,
+                                      tb_empl_manage d
+                                where c.bm_innb = b.bm_innb
+                                  and c.om_code = d.bhf_code
+                                  and d.use_at = 'Y'
+                                  and d.delete_at = 'N'
+                                  and d.em_no = #{params.em_no})
+                  or
+                  /*매장*/
+                  b.bm_innb in (select c.bm_innb
+                                  from tb_bbs_target c,
+                                       tb_empl_manage d,
+                                       tb_str_manage e
+                                 where c.bm_innb = b.bm_innb
+                                   and c.sm_code = e.sm_code
+                                   and d.em_no != 'superuser'
+                                   and d.use_at = 'Y'
+                                   and d.delete_at = 'N'
+                                   and e.use_at = 'Y'
+                                   and e.delete_at = 'N'
+                                   and d.bhf_code = e.om_code
+                                   and d.em_no = #{params.em_no})
+                )
+            ]]>
+            </when>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag > 2">
+            <!--여사원인 경우-->
+            <![CDATA[
+            and (
+                 /*지점*/
+                 b.bm_innb in (select c.bm_innb
+                                 from tb_bbs_target c,
+                                      tb_empl_manage d
+                                where c.bm_innb = b.bm_innb
+                                  and c.om_code = d.bhf_code
+                                  and d.use_at = 'Y'
+                                  and d.delete_at = 'N'
+                                  and d.em_no = #{params.em_no})
+                  or
+                  /*매장*/
+                  b.bm_innb in (select c.bm_innb
+                                  from tb_bbs_target c,
+                                       tb_empl_manage d,
+                                       tb_str_empl e
+                                 where c.bm_innb = b.bm_innb
+                                   and c.sm_code = e.sm_code
+                                   and d.em_no != 'superuser'
+                                   and d.use_at = 'Y'
+                                   and d.delete_at = 'N'
+                                   and e.delete_at = 'N'
+                                   and d.em_no = e.em_no
+                                   and d.em_no = #{params.em_no})
+                )
+            
+            ]]>
+            
+            <if test="params.auth_flag == 3">
+            <![CDATA[
+           	 AND (b.fixrnd <> '0000000007' OR b.fixrnd IS NULL)
+           	]]>
+       		</if>
+       		
+            <if test="params.auth_flag == 4">
+           	 <![CDATA[
+           	  AND (b.fixrnd <> '0000000006' OR b.fixrnd IS NULL)
+           	]]>
+       		</if>
+       		
+       		<if test="params.team_val != null and !params.team_val.equals('')">
+	       		and p.tm_code = #{params.team_val}
+	       	</if>
+	       	
+            </when>
+        </choose>
+        <!--모바일 인터페이스 사용조건문 끝-->
+        
+		<if test="params.teamWord != null and !params.teamWord.equals('')">
+       		and p.tm_code = #{params.teamWord}
+       	</if>
+       	
+        <choose>
+            <when test="params.word != null and !params.word.equals('') and params.key.equals('sj') ">
+                and bm_sj like '%${params.word}%'
+            </when>
+            <when test="params.word != null and !params.word.equals('') and params.key.equals('cn') ">
+                and bm_cn like '%${params.word}%'
+            </when>
+        </choose>
+        <choose>
+            <when test="params.search_date_from!=null and !params.search_date_from.equals('') and params.search_date_to!=null and !params.search_date_to.equals('')">
+               and date_format(b.regist_de, '%Y%m%d') between replace(#{params.search_date_from}, '-', '') and replace(#{params.search_date_to}, '-', '')
+            </when>
+        </choose>
+        <if test="dash_flag != null and !dash_flag.equals('') and dash_flag.equals('YY') ">
+           and date_format(b.regist_de, '%Y%m%d') >= DATE_ADD(date_format(now(), '%Y%m%d'), INTERVAL - 1 month)
+      	</if>
+         group by b.bm_innb, b.regist_de
+         order by b.bm_innb  desc ) as abc
+         where 1=1
+         <if test="params.jijumOmCode != null and !params.jijumOmCode.equals('') and params.jijumWord.equals('') ">
+            and abc.bm_innb in (
+                              select bm_innb
+                                from tb_bbs_target c
+                               where c.bm_innb = abc.bm_innb
+                                 and c.om_code = #{params.jijumOmCode}
+                             )
+        </if>
+        <if test="params.jijumOmCode.equals('') and params.jijumWord != null and !params.jijumWord.equals('')">
+            and abc.bm_innb in (
+                              select c.bm_innb
+                                from tb_bbs_target c ,tb_str_manage s
+                               where c.bm_innb = abc.bm_innb
+                                 and c.sm_code = s.sm_code
+                                 and s.sm_nm like '%${params.jijumWord}%'
+                             )
+        </if>
+        <if test="params.jijumOmCode != null and !params.jijumOmCode.equals('') and params.jijumWord != null and !params.jijumWord.equals('')">
+        	and (
+	             abc.bm_innb in (select bm_innb 
+	             				   from tb_bbs_target c 
+	             				  where c.bm_innb = abc.bm_innb  
+	             				    and c.om_code = #{params.jijumOmCode} 
+	             				 )
+	             and
+	             abc.bm_innb in (
+                           select c.bm_innb
+                             from tb_bbs_target c ,tb_str_manage s
+                            where c.bm_innb = abc.bm_innb
+                              and c.sm_code = s.sm_code
+                              and s.sm_nm like '%${params.jijumWord}%'
+                          )
+            )
+         </if>
+    ${pagingEnd}
+    </select>
+
+    <select id="noticeView" parameterType="String" resultType="com.dasa.communication.vo.NoticeVo" >
+        select bm_innb as 'bm_innb'
+             , bm_sj as 'bm_sj'
+             , bm_cn as 'bm_cn'
+             , e.em_nm as 'regist_man'
+             , date_format(b.regist_de, '%Y-%m-%d') as 'regist_de'
+             , b.atchmnfl_innb as 'am_no'
+             , b.insert_type as 'insert_type'
+          from tb_bbs_manage b
+          left outer join  tb_empl_manage e
+            on b.regist_man = e.em_no
+         where bm_innb = #{bminnb}
+    </select>
+
+
+    <!-- 팝업화면 매장검색-->
+    <select id="martAutoComplate70100" resultType="com.vertexid.vo.KeyValueVo" parameterType="map" >
+         SELECT  A.sm_code AS 'key'
+                ,A.sm_nm AS 'value'
+                ,A.om_code AS 'om_code'
+           FROM tb_str_manage A
+          WHERE 1=1
+          <!--  FROM tb_str_manage                 A
+                LEFT OUTER JOIN tb_orgnzt_manage B
+             ON B.om_code = A.om_code
+            AND B.use_at = 'Y'
+            AND B.delete_at = 'N'
+          WHERE B.cm_code = #{cm_code}  -->
+            AND (CASE WHEN A.sm_nm &lt; 'ㄱ' THEN UPPER(SUBSTR(A.sm_nm, 1, 1))
+                    WHEN ASCII('ㄱ') &lt;= ASCII(SM_NM) AND
+                         ASCII(SM_NM) &lt;= ASCII('ㅎ') THEN A.sm_nm
+                    WHEN A.sm_nm &lt; '나' then 'ㄱ'
+                    WHEN A.sm_nm &lt; '다' then 'ㄴ'
+                    WHEN A.sm_nm &lt; '라' then 'ㄷ'
+                    WHEN A.sm_nm &lt; '마' then 'ㄹ'
+                    WHEN A.sm_nm &lt; '바' then 'ㅁ'
+                    WHEN A.sm_nm &lt; '사' then 'ㅂ'
+                    WHEN A.sm_nm &lt; '아' then 'ㅅ'
+                    WHEN A.sm_nm &lt; '자' then 'ㅇ'
+                    WHEN A.sm_nm &lt; '차' then 'ㅈ'
+                    WHEN A.sm_nm &lt; '카' then 'ㅊ'
+                    WHEN A.sm_nm &lt; '타' then 'ㅋ'
+                    WHEN A.sm_nm &lt; '파' then 'ㅌ'
+                    WHEN A.sm_nm &lt; '하' then 'ㅍ'
+                    ELSE 'ㅎ'
+               END = #{keyword}
+               OR  A.sm_nm LIKE concat('%',#{keyword},'%')
+               )
+
+        <if test="omCodeList.size() != 0">
+            AND A.om_code in
+            <foreach item="om_code" index="index" collection="omCodeList" open="(" separator="," close=")">
+                #{om_code}
+            </foreach>
+        </if>
+       AND A.SM_OPER_AT = 'Y' 
+       AND A.USE_AT = 'Y'
+       AND A.DELETE_AT = 'N'
+       GROUP by A.sm_nm
+
+      <!--  AND A.SM_CODE = B.SM_CODE
+       AND B.EM_NO = C.EM_NO
+       AND C.USE_AT = 'Y'
+       AND B.DELETE_AT = 'N'
+       AND C.DELETE_AT = 'N' -->
+    </select>
+	
+	<!-- 팝업화면 팀 검색-->
+    <select id="teamAutoComplate70100" resultType="com.vertexid.vo.KeyValueVo" parameterType="map" >
+         SELECT  A.om_code AS 'key'
+                ,A.om_nm AS 'value'
+                ,A.om_parent_no AS 'om_code'
+           FROM tb_orgnzt_manage A           
+          WHERE 1=1
+            AND (CASE WHEN A.om_nm &lt; 'ㄱ' THEN UPPER(SUBSTR(A.om_nm, 1, 1))
+                    WHEN ASCII('ㄱ') &lt;= ASCII(om_nm) AND
+                         ASCII(om_nm) &lt;= ASCII('ㅎ') THEN A.om_nm
+                    WHEN A.om_nm &lt; '나' then 'ㄱ'
+                    WHEN A.om_nm &lt; '다' then 'ㄴ'
+                    WHEN A.om_nm &lt; '라' then 'ㄷ'
+                    WHEN A.om_nm &lt; '마' then 'ㄹ'
+                    WHEN A.om_nm &lt; '바' then 'ㅁ'
+                    WHEN A.om_nm &lt; '사' then 'ㅂ'
+                    WHEN A.om_nm &lt; '아' then 'ㅅ'
+                    WHEN A.om_nm &lt; '자' then 'ㅇ'
+                    WHEN A.om_nm &lt; '차' then 'ㅈ'
+                    WHEN A.om_nm &lt; '카' then 'ㅊ'
+                    WHEN A.om_nm &lt; '타' then 'ㅋ'
+                    WHEN A.om_nm &lt; '파' then 'ㅌ'
+                    WHEN A.om_nm &lt; '하' then 'ㅍ'
+                    ELSE 'ㅎ'
+               END = #{keyword}
+               OR  A.om_nm LIKE concat('%',#{keyword},'%')
+               )
+
+        <if test="omCodeList.size() != 0">
+            AND A.OM_PARENT_NO in
+            <foreach item="om_code" index="index" collection="omCodeList" open="(" separator="," close=")">
+                #{om_code}
+            </foreach>
+        </if>
+       AND A.USE_AT = 'Y'
+       AND A.DELETE_AT = 'N'
+       GROUP by A.om_nm
+    </select>
+    
+    <!-- 메인화면 -->
+    <select id="martAutoComplate_cp" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+        SELECT A.SM_CODE AS 'key'
+             , A.SM_NM AS 'value'
+        FROM tb_str_manage A
+        WHERE CASE WHEN A.SM_NM &lt; 'ㄱ' THEN UPPER(SUBSTR(A.SM_NM, 1, 1))
+                   WHEN ASCII('ㄱ') &lt;= ASCII(A.SM_NM) AND ASCII(A.SM_NM) &lt;= ASCII('ㅎ') THEN A.SM_NM
+                    WHEN A.SM_NM &lt; '나' then 'ㄱ'
+                    WHEN A.SM_NM &lt; '다' then 'ㄴ'
+                    WHEN A.SM_NM &lt; '라' then 'ㄷ'
+                    WHEN A.SM_NM &lt; '마' then 'ㄹ'
+                    WHEN A.SM_NM &lt; '바' then 'ㅁ'
+                    WHEN A.SM_NM &lt; '사' then 'ㅂ'
+                    WHEN A.SM_NM &lt; '아' then 'ㅅ'
+                    WHEN A.SM_NM &lt; '자' then 'ㅇ'
+                    WHEN A.SM_NM &lt; '차' then 'ㅈ'
+                    WHEN A.SM_NM &lt; '카' then 'ㅊ'
+                    WHEN A.SM_NM &lt; '타' then 'ㅋ'
+                    WHEN A.SM_NM &lt; '파' then 'ㅌ'
+                    WHEN A.SM_NM &lt; '하' then 'ㅍ'
+                    ELSE 'ㅎ'
+               END = #{keyword}
+         OR( A.SM_NM LIKE concat('%',#{keyword},'%'))
+        AND A.DELETE_AT = 'N'
+        GROUP by A.SM_NM
+    </select>
+    <insert id="noticeInsert" parameterType="com.dasa.communication.vo.NoticeVo" useGeneratedKeys="true"  keyProperty="bm_innb" >
+        INSERT INTO
+        tb_bbs_manage (
+        <!-- BM_INNB -->
+          BM_CODE
+        , CM_CODE
+        , BM_SJ
+        , BM_CN
+        , DELETE_AT
+        , REGIST_MAN
+        , REGIST_DE
+        , UPDT_MAN
+        , UPDT_DE
+        , INSERT_TYPE
+        , FIXRND
+        )
+        VALUES (
+         <!--  #{bm_innb} -->
+          #{bm_code}
+        , #{cm_code}
+        , #{bm_sj}
+        , #{bm_cn}
+        , 'N'
+        , #{regist_man}
+        , now()
+        , #{regist_man}
+        , now()
+        , #{insert_Type}
+        , #{fixRnd}
+        )
+        <selectKey resultType="String" order="AFTER" keyProperty="bm_innb"  >
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <update id="noticeUpdate" parameterType="com.dasa.communication.vo.NoticeVo">
+        UPDATE tb_bbs_manage
+          SET BM_SJ        = #{bm_sj}
+            , BM_CN        = #{bm_cn}
+            , UPDT_DE      = now()
+            , FIXRND       = #{fixRnd}
+            <!-- , BM_ALL_NTCAT = #{bm_all_ntcat,jdbcType=VARCHAR}
+            , BM_UPEND_AT  = #{bm_upend_at,jdbcType=VARCHAR}
+            , UPDT_MAN     = #{regist_man,jdbcType=VARCHAR}  -->
+        WHERE BM_INNB = #{bm_innb}
+    </update>
+
+    <insert id="noticeOmInsert" parameterType="map" >
+        INSERT INTO
+        tb_bbs_target (
+          <!-- BT_INNB -->
+         OM_CODE
+        , BT_FLAG
+        , BM_INNB
+        , DELETE_AT
+        , REGIST_MAN
+        , REGIST_DE
+        , UPDT_MAN
+        , UPDT_DE
+        )
+        VALUES (
+          <!-- BT_INNB_SEQ.NEXTVAL  -->
+         #{om_code}
+        , #{cmmnc_se}
+        , #{cm_innb}
+        , 'N'
+        , #{regist_man}
+        , now()
+        , #{regist_man}
+        , now()
+        )
+    </insert>
+
+    <insert id="noticeSmInsert" parameterType="map" >
+        INSERT INTO
+        tb_bbs_target (
+          <!-- BT_INNB -->
+          OM_CODE
+        , SM_CODE
+        , TM_CODE
+        , BT_FLAG
+        , BM_INNB
+        , DELETE_AT
+        , REGIST_MAN
+        , REGIST_DE
+        , UPDT_MAN
+        , UPDT_DE
+        )
+        VALUES (
+          <!-- BT_INNB_SEQ.NEXTVAL  -->
+          #{om_code}
+        , #{sm_code}
+        , #{tm_code}
+        , #{cmmnc_se}
+        , #{cm_innb}
+        , 'N'
+        , #{regist_man}
+        , now()
+        , #{regist_man}
+        , now()
+        )
+    </insert>
+
+	<insert id="noticeEmInsert" parameterType="map" >
+        INSERT INTO
+        tb_bbs_target (
+          <!-- BT_INNB -->
+          OM_CODE
+        , SM_CODE
+        , EM_CODE
+        , BT_FLAG
+        , BM_INNB
+        , DELETE_AT
+        , REGIST_MAN
+        , REGIST_DE
+        , UPDT_MAN
+        , UPDT_DE
+        )
+        VALUES (
+          <!-- BT_INNB_SEQ.NEXTVAL  -->
+          #{om_code}
+        , #{sm_code}
+        , #{em_code}
+        , #{cmmnc_se}
+        , #{cm_innb}
+        , 'N'
+        , #{regist_man}
+        , now()
+        , #{regist_man}
+        , now()
+        )
+    </insert>
+    
+	<delete id="noticePopupDelete" parameterType="hashmap" >
+        UPDATE tb_bbs_manage
+           SET
+          	 DELETE_AT    = 'Y'
+         	,UPDT_MAN    = #{updt_man}
+          	,UPDT_DE    = now()
+          WHERE BM_INNB LIKE #{bmInnb}||'%'
+  	</delete>
+
+    <delete id="noticeOmDelete" parameterType="map" >
+     <!-- DELETE
+       FROM TB_CMMNC_BHF
+      WHERE CMMNC_SE = #{cmmnc_se}
+        AND CM_INNB = #{cm_innb} -->
+     DELETE
+       FROM tb_bbs_target
+      WHERE BM_INNB = #{cm_innb}
+    </delete>
+    <delete id="noticeSmDelete" parameterType="map" >
+     DELETE
+         FROM tb_bbs_target
+      WHERE BM_INNB = #{cm_innb}
+    </delete>
+    <update id="noticeAmNoUpdate" parameterType="map"  >
+        UPDATE tb_bbs_manage
+           SET ATCHMNFL_INNB = #{am_no}
+        WHERE BM_INNB = #{bm_innb}
+    </update>
+    <select id="noticeOmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+        SELECT C.OM_CODE as "key",
+               O.OM_NM as "value"
+          FROM Tb_bbs_target C, tb_orgnzt_manage O
+         WHERE C.OM_CODE = O.OM_CODE
+           AND C.BM_INNB   = #{cm_innb}
+           AND C.DELETE_AT = 'N'
+      GROUP BY C.OM_CODE, O.OM_NM
+    </select>
+    <select id="noticeSmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+        SELECT C.SM_CODE as "key",
+               S.SM_NM as "value"
+          FROM tb_bbs_target C, tb_str_manage S
+         WHERE C.SM_CODE   = S.SM_CODE
+           AND C.BM_INNB   = #{cm_innb}
+           AND C.DELETE_AT = 'N'
+      GROUP BY C.SM_CODE, S.SM_NM
+    </select> 
+    <select id="noticeTmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+        SELECT C.TM_CODE as "key",
+               S.OM_NM as "value"
+	      FROM tb_bbs_target C, tb_orgnzt_manage S
+	     WHERE C.TM_CODE   = S.OM_CODE
+	       AND C.BM_INNB   = #{cm_innb}
+	       AND C.DELETE_AT = 'N'
+	     GROUP BY C.TM_CODE, S.OM_NM
+    </select>
+    <select id="fixRoundList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+    SELECT A.FIXRND AS "key",
+      CASE 
+   		WHEN A.FIXRND = '0000000006'
+   		THEN '고정'
+  		WHEN A.FIXRND = '0000000007'
+   	    THEN '순회'
+        ELSE '전체'
+  	  END AS "value"
+	    FROM TB_BBS_MANAGE A,
+             TB_BBS_TARGET B
+       WHERE A.BM_INNB = B.BM_INNB
+		 AND A.BM_INNB = #{cm_innb}
+  </select>
+	<select id="noticeEmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+     SELECT  A.EM_CODE AS "key" ,
+             C.EM_NM AS "value"
+       FROM  tb_bbs_target A, tb_empl_manage C
+      WHERE 1=1
+        AND A.BM_INNB = #{cm_innb}
+        AND A.BT_FLAG = '3'
+        AND A.EM_CODE = C.EM_NO
+      GROUP BY A.EM_CODE, C.EM_NM
+    </select>
+    <!--
+    0 : 지점, 팀 목록 조회(ex:슈퍼)
+    1 : 지점, 팀 목록 조회(ex:관리자)
+    2 : 팀 목록 조회      (ex:지점장)
+    3 : 내팀 조회         (ex:팀장)
+    4 : 내팀 조회         (ex:고정여사원)
+    5 : 내팀 조회         (ex:순회여사원)
+    -->
+    <select id="selectAuthDepthList" resultType="com.vertexid.vo.OrganizationVo" >
+        <if test="auth_flag &lt; 2 or (om_orgnzt_se == 2 and auth_flag &lt; 3 ) ">
+           SELECT '' AS om_code
+                <choose>
+                <when  test="om_orgnzt_se == 1">
+                , '지점' om_nm
+                </when>
+                <otherwise>
+                , '팀명' om_nm
+                </otherwise>
+                </choose>
+                , 0 om_sort_ordr
+            FROM DUAL
+            UNION ALL
+            </if>
+           SELECT om_code
+                  , om_nm
+                  , om_sort_ordr
+            FROM tb_orgnzt_manage
+           WHERE cm_code = #{cm_code}
+             AND OM_CODE != '00006'
+           <choose>
+            <when test="om_orgnzt_se != 2 and auth_flag  &gt; 1  "> <!-- 지점만조회 -->
+               AND OM_CODE = #{om_code}
+            </when>
+            <when test="om_orgnzt_se != 1 and auth_flag &gt; 2  "> <!-- 내팀만조회 -->
+               AND OM_CODE = #{tm_code}
+            </when>
+            <when test="om_orgnzt_se != 1 and auth_flag &lt; 3  "> <!-- 팀목록 조회 -->
+               AND OM_PARENT_NO = #{param_om_code}
+            </when>
+
+        </choose>
+             AND om_orgnzt_se=#{om_orgnzt_se}
+             AND use_at ='Y'
+             AND delete_at ='N'
+        ORDER BY om_sort_ordr
+    </select>
+</mapper>

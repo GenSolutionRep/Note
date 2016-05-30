@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="actvityFixings">
+	<select id="actvityFixingListCnt" resultType="int" parameterType="com.vertexid.vo.NaviVo">
+		SELECT COUNT(*)
+		  FROM TB_BBS_MANAGE
+		 WHERE DELETE_AT = 'N'
+<!-- 		<if test="params.word != null and !params.word.equals('')"> -->
+<!-- 			AND ${params.} LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+<!-- 		<if test="params.pramId != null and !params.pramId.equals('')"> -->
+<!-- 			AND BM_CN LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+		<choose>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('sj') ">
+				AND BM_SJ LIKE '%${params.word}%'
+			</when>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('cn') ">
+				AND BM_CN LIKE '%${params.word}%'
+			</when>
+		</choose>	
+		
+	</select>
+	<select id="actvityFixingList" resultType="com.dasa.communication.vo.NoticeVo" parameterType="com.vertexid.vo.NaviVo">
+	${pagingStart}
+		SELECT BM_INNB
+		     , BM_SJ
+			 , E.EM_NM REGIST_MAN
+			 , (SELECT COUNT(*) FROM TB_ATTACH_ITEM  WHERE AI_NO = B.ATCHMNFL_INNB AND DELETE_AT = 'N') AI_CNT
+       		 , TO_CHAR(B.REGIST_DE,'YYYY-MM-DD') REGIST_DE       
+		  FROM TB_BBS_MANAGE B
+      	  LEFT OUTER JOIN  TB_EMPL_MANAGE E
+      		ON B.REGIST_MAN = E.EM_NO
+		 WHERE B.DELETE_AT = 'N'
+<!-- 		<if test="params.word != null and !params.word.equals('')"> -->
+<!-- 			AND ${params.} LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+<!-- 		<if test="params.pramId != null and !params.pramId.equals('')"> -->
+<!-- 			AND BM_CN LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+		<choose>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('sj') ">
+				AND BM_SJ LIKE '%${params.word}%'
+			</when>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('cn') ">
+				AND BM_CN LIKE '%${params.word}%'
+			</when>
+		</choose>	
+		ORDER BY B.REGIST_DE DESC
+	${pagingEnd}
+	</select>
+	<select id="actvityFixingView" parameterType="String" resultType="com.dasa.communication.vo.NoticeVo" >
+		SELECT BM_INNB
+		     , BM_SJ
+		     , BM_CN
+			 , E.EM_NM REGIST_MAN
+       		 , TO_CHAR(B.REGIST_DE,'YYYY-MM-DD') REGIST_DE       
+       		 , B.ATCHMNFL_INNB AM_NO
+		  FROM TB_BBS_MANAGE B
+       	  LEFT OUTER JOIN  TB_EMPL_MANAGE E
+      		ON B.REGIST_MAN = E.EM_NO
+      	 WHERE BM_INNB = #{bmInnb} 
+	</select>
+	<select id="martAutoComplate" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+		SELECT OM_CODE AS KEY
+			 , OM_NM AS VALUE
+		FROM TB_ORGNZT_MANAGE												
+		WHERE CASE WHEN OM_NM &lt; 'ㄱ' THEN UPPER(SUBSTR(OM_NM, 1, 1)) 
+		            WHEN ASCII('ㄱ') &lt;= ASCII(OM_NM) AND				
+		                 ASCII(OM_NM) &lt;= ASCII('ㅎ') THEN OM_NM		
+		            WHEN OM_NM &lt; '나' then 'ㄱ'							
+		            WHEN OM_NM &lt; '다' then 'ㄴ'							
+		            WHEN OM_NM &lt; '라' then 'ㄷ'							
+		            WHEN OM_NM &lt; '마' then 'ㄹ'							
+		            WHEN OM_NM &lt; '바' then 'ㅁ'							
+		            WHEN OM_NM &lt; '사' then 'ㅂ'							
+		            WHEN OM_NM &lt; '아' then 'ㅅ'							
+		            WHEN OM_NM &lt; '자' then 'ㅇ'							
+		            WHEN OM_NM &lt; '차' then 'ㅈ'							
+		            WHEN OM_NM &lt; '카' then 'ㅊ'							
+		            WHEN OM_NM &lt; '타' then 'ㅋ'							
+		            WHEN OM_NM &lt; '파' then 'ㅌ'							
+		            WHEN OM_NM &lt; '하' then 'ㅍ'							
+		            ELSE 'ㅎ' 											
+		       END = UPPER(#{keyword}) 											
+		OR( OM_NM LIKE '%'||#{keyword}||'%')
+		AND DELETE_AT = 'N'
+		AND OM_ORGNZT_SE = 2
+	</select>
+	<select id="actvityFixingNextVal" resultType="String" >
+		SELECT BM_INNB_SEQ.NEXTVAL FROM DUAL
+	</select>
+	<insert id="actvityFixingInsert" parameterType="com.dasa.communication.vo.NoticeVo">
+		INSERT INTO 
+		TB_BBS_MANAGE (
+		  BM_INNB
+		, BM_CODE
+		, BM_ALL_NTCAT
+		, BM_UPEND_AT
+		, BM_SJ
+		, BM_CN
+		, BM_REGIST_IP
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		  #{bm_innb}
+		, #{bm_code}
+		, #{bm_all_ntcat, jdbcType=VARCHAR}
+		, #{bm_upend_at, jdbcType=VARCHAR}
+		, #{bm_sj}
+		, #{bm_cn}
+		, #{bm_regist_ip, jdbcType=VARCHAR}		
+		, 'N'
+		, #{regist_man}
+		, SYSDATE
+		, #{regist_man}
+		, SYSDATE
+		)
+	</insert>
+	<update id="actvityFixingUpdate" parameterType="com.dasa.communication.vo.NoticeVo">
+		UPDATE TB_BBS_MANAGE
+		  SET BM_ALL_NTCAT = #{bm_all_ntcat,jdbcType=VARCHAR} 
+			, BM_UPEND_AT  = #{bm_upend_at,jdbcType=VARCHAR}  
+			, BM_SJ        = #{bm_sj}        
+			, BM_CN        = #{bm_cn}        
+			, UPDT_MAN     = #{regist_man,jdbcType=VARCHAR}   
+			, UPDT_DE      = SYSDATE   
+		WHERE BM_INNB = #{bm_innb}		      
+	</update>
+	<insert id="actvityFixingOmInsert" parameterType="map">
+		INSERT INTO 
+		TB_CMMNC_BHF (
+		  OM_CODE
+		, CMMNC_SE
+		, CM_INNB
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		  #{om_code}
+		, #{cmmnc_se}
+		, #{cm_innb}
+		, 'N'
+		, #{regist_man}
+		, SYSDATE
+		, #{regist_man}
+		, SYSDATE
+		)
+	</insert>
+	<insert id="actvityFixingSmInsert" parameterType="map">
+		INSERT INTO 
+		TB_CMMNC_STR (
+		  SM_CODE
+		, CMMNC_SE
+		, CM_INNB
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		  #{sm_code}
+		, #{cmmnc_se}
+		, #{cm_innb}
+		, 'N'
+		, #{regist_man}
+		, SYSDATE
+		, #{regist_man}
+		, SYSDATE
+		)
+	</insert>
+	
+	<delete id="actvityFixingOmDelete" parameterType="map" >
+	 DELETE 
+	   FROM TB_CMMNC_BHF
+	  WHERE CMMNC_SE = #{cmmnc_se}
+	    AND CM_INNB = #{cm_innb}
+	</delete>
+	<delete id="actvityFixingSmDelete" parameterType="map" >
+	 DELETE 
+	   FROM TB_CMMNC_STR
+	  WHERE CMMNC_SE = #{cmmnc_se}
+	    AND CM_INNB = #{cm_innb}
+	</delete>
+	<update id="actvityFixingAmNoUpdate" parameterType="map"  >
+		UPDATE TB_BBS_MANAGE
+		   SET ATCHMNFL_INNB = #{am_no}		   	 
+		WHERE BM_INNB = #{bm_innb}
+	</update>
+	<select id="actvityFixingOmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+		SELECT C.OM_CODE AS KEY
+			 , O.OM_NM AS VALUE
+		  FROM TB_CMMNC_BHF C
+     	  LEFT OUTER JOIN TB_ORGNZT_MANAGE O
+       		ON C.OM_CODE = O.OM_CODE
+		 WHERE CM_INNB = #{cm_innb}
+		   AND C.DELETE_AT = 'N'
+	</select>
+	<select id="actvityFixingSmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+		SELECT C.SM_CODE AS KEY
+			 , O.OM_NM AS VALUE
+		  FROM TB_CMMNC_STR C
+     	  LEFT OUTER JOIN TB_ORGNZT_MANAGE O
+       		ON C.SM_CODE = O.OM_CODE
+		 WHERE CM_INNB = #{cm_innb}
+		   AND C.DELETE_AT = 'N'
+	</select>
+	
+	
+	
+</mapper>

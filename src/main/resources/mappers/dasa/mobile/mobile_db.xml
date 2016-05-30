@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mobile">
+
+    <select id="getCurrentDate" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select date_format(now(), '${date_format}') as curr_de
+              from dual
+        ]]>
+    </select>
+
+    <select id="getCustomerGroupList" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.cg_code,
+                   a.cg_nm
+              from tb_cstmr_group a
+             where a.use_at = 'Y'
+             order by a.cg_code asc
+        ]]>
+    </select>
+
+    <select id="getManageEnterpriseListPerCustomerGroup" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.me_code,
+                   a.me_nm
+              from tb_manage_entrps a
+             where a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and a.cg_code = #{cg_code}
+             order by a.me_code asc
+        ]]>
+    </select>
+
+    <select id="getStoreListPerManageEnterprise" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.sm_code, a.sm_nm
+              from tb_str_manage a
+             where a.use_at = 'Y'
+               and a.cg_code = #{cg_code}
+               and a.me_code = #{me_code}
+             order by a.sm_code asc
+        ]]>
+    </select>
+
+    <select id="getStoreViewOfFix,Rnd" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select d.me_code,
+                   d.me_nm,
+                   c.sm_code,
+                   c.sm_nm,
+                   c.sm_la,
+                   c.sm_lo
+              from tb_empl_manage a,
+                   tb_str_empl b,
+                   tb_str_manage c,
+                   tb_manage_entrps d
+             where a.em_id != 'superuser'
+               and a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and b.delete_at = 'N'
+               and c.use_at = 'Y'
+               and c.delete_at = 'N'
+               and d.use_at = 'Y'
+               and d.delete_at = 'N'
+               and a.em_no = b.em_no
+               and b.sm_code = c.sm_code
+               and c.me_code = d.me_code
+               and c.cg_code = d.cg_code
+               and a.em_dty_code = #{em_dty_code}
+               and a.em_no = #{em_no}
+               and c.sm_oper_at = 'Y'
+        ]]>
+        <choose>
+            <when test="search_nm != null and !search_nm.equals('')">
+               and c.sm_nm like '%${search_nm}%'
+            </when>
+        </choose>
+             order by c.sm_nm asc
+    </select>
+
+    <select id="getStoreListOfTeamHeader,Manager" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.sm_code,
+                   concat(b.me_nm, ' ', a.sm_nm) as sm_nm
+              from tb_str_manage a,
+                   tb_manage_entrps b
+             where a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and b.use_at = 'Y'
+               and b.delete_at = 'N'
+               and a.me_code = b.me_code
+               and a.cg_code = b.cg_code
+        ]]>
+        <choose>
+            <when test="search_nm != null and !search_nm.equals('')">
+               and concat(b.me_nm, a.sm_nm) like '%${search_nm}%'
+            </when>
+        </choose>
+        <choose>
+            <when test="om_code != null and !om_code.equals('')">
+               and a.om_code = #{om_code}
+            </when>
+        </choose>
+             order by b.me_nm asc, a.sm_nm asc
+    </select>
+
+    <select id="getStoreListPerBranch" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.sm_code,
+                   a.sm_nm
+              from tb_str_manage a
+             where a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and a.om_code = #{om_code}
+        ]]>
+        <choose>
+            <when test="search_nm != null and !search_nm.equals('')">
+               and a.sm_nm like '%${search_nm}%'
+            </when>
+        </choose>
+    </select>
+
+    <select id="getBranchListPerCompany" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.om_code,
+                   a.om_nm
+              from tb_orgnzt_manage a
+             where a.cm_code = #{cm_code}
+               and a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and a.om_orgnzt_se = '1'
+             order by a.om_sort_ordr asc
+        ]]>
+    </select>
+
+    <select id="getEmployeeListPerBranch" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.em_no,
+                   a.em_id,
+                   a.em_nm
+              from tb_empl_manage a
+             where a.em_no != 'superuser'
+               and a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and a.bhf_code = #{om_code}
+        ]]>
+        <if test="em_dty_code!=null and !em_dty_code.equals('')">
+               and a.em_dty_code = #{em_dty_code}
+        </if>
+        <if test="search_nm!=null and !search_nm.equals('')">
+               and a.em_nm like '%${search_nm}%'
+        </if>
+    </select>
+
+    <select id="getEmployeeListPerStore" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select a.em_no,
+                   b.em_id,
+                   b.em_nm,
+                   case when a.em_sub_at = 'N' then '담당사원'
+                        when a.em_sub_at = 'Y' then '보조사원'
+                        else ''
+                   end as em_type_nm
+              from tb_str_empl a,
+                   tb_empl_manage b
+             where a.delete_at = 'N'
+               and a.sm_code = #{sm_code}
+               and b.em_no != 'superuser'
+               and b.use_at = 'Y'
+               and b.delete_at = 'N'
+               and a.em_no = b.em_no
+        ]]>
+        <if test="em_dty_code!=null and !em_dty_code.equals('')">
+               and b.em_dty_code = #{em_dty_code}
+        </if>
+        <if test="search_nm!=null and !search_nm.equals('')">
+               and b.em_nm like '%${search_nm}%'
+        </if>
+    </select>
+
+    <select id="getCommuteTime" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select ifnull(date_format(a.dm_attend_de, '%H:%i'), '') as attending_time,
+                   ifnull(date_format(a.dm_lvffc_de, '%H:%i'), '') as leaving_time,
+                   case when a.dm_at_am_no is not null
+                        then (
+                              select ifnull(u.ai_path, '')
+                                from tb_attach_item u
+                               where u.ai_no = (select ifnull(max(t.ai_no), 0)
+                                                  from tb_attach_item t
+                                                 where t.am_no = a.dm_at_am_no
+                                                   and t.delete_at = 'N')
+                             )
+                        else ''
+                   end as attending_image_url,
+                   case when a.dm_lv_am_no is not null
+                        then (
+                              select ifnull(u.ai_path, '')
+                                from tb_attach_item u
+                               where u.ai_no = (select ifnull(max(t.ai_no), 0)
+                                                  from tb_attach_item t
+                                                 where t.am_no = a.dm_lv_am_no
+                                                   and t.delete_at = 'N')
+                             )
+                        else ''
+                   end as leaving_image_url
+              from tb_dclz_manage a
+             where a.delete_at = 'N'
+               and a.dm_dt = #{search_de}
+               and a.em_no = #{em_no}
+        ]]>
+    </select>
+
+    <insert id="setAttendingTime" parameterType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            insert into tb_dclz_manage (
+                   dm_dt
+                 , em_no
+                 , om_code
+                 , dm_attend_de
+                 , dm_at_am_no
+                 , regist_man
+                 , regist_de
+                 , updt_man
+                 , updt_de
+            ) values (
+                   #{curr_de}
+                 , #{em_no}
+                 , #{om_code}
+                 , now()
+                 , #{am_no}
+                 , #{regist_man}
+                 , now()
+                 , #{updt_man}
+                 , now()
+            )
+            on duplicate key
+            update om_code = #{om_code}
+                 , dm_attend_de = now()
+                 , dm_at_am_no = #{am_no}
+                 , updt_man = #{updt_man}
+                 , updt_de = now()
+        ]]>
+        <selectKey order="AFTER" resultType="String" keyProperty="attending_time" >
+            select date_format(dm_attend_de, '%H:%i')
+              from tb_dclz_manage
+             where dm_dt = #{curr_de}
+               and em_no = #{em_no}
+        </selectKey>
+    </insert>
+
+    <insert id="setLeavingTime" parameterType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            update tb_dclz_manage
+               set dm_lvffc_de = now()
+                 , dm_lv_am_no = #{am_no}
+                 , updt_man = #{updt_man}
+                 , updt_de = now()
+             where dm_dt = #{curr_de}
+               and em_no = #{em_no}
+        ]]>
+        <selectKey order="AFTER" resultType="String" keyProperty="leaving_time" >
+            select date_format(dm_lvffc_de, '%H:%i')
+              from tb_dclz_manage
+             where dm_dt = #{curr_de}
+               and em_no = #{em_no}
+        </selectKey>
+    </insert>
+
+    <select id="getRndPlanList" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select c.prdi_sm_code,
+                   c.prdi_sm_code_nm as prdi_sm_nm,
+                   d.em_nm as prdi_em_nm,
+                   ifnull(b.prd_partclr_matter, '') as prd_partclr_matter,
+                   case when c.prdi_attend_de is not null
+                        then 'Y'
+                        else 'N'
+                   end prdi_attend_at
+              from tb_plan_rnd a
+              left outer join tb_plan_rnd_day b
+                on a.base_de = b.base_de
+               and b.delete_at = 'N'
+               and a.regist_man = b.regist_man               
+              left outer join tb_plan_rnd_day_item c
+                on b.base_de = c.base_de
+               and b.regist_man = c.regist_man
+               and b.plan_de = c.plan_de
+               and c.delete_at = 'N'
+              left outer join tb_empl_manage d
+                on c.regist_man = d.em_no
+             where a.delete_at = 'N'
+               and b.plan_de = #{plan_de}
+               and b.base_de = #{base_de}
+               and b.regist_man = #{em_no}
+             order by c.prdi_sm_code asc
+        ]]>
+    </select>
+<!--     <select id="getRndPlanList" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo"> -->
+<!--         <![CDATA[ -->
+<!--             select c.prdi_sm_code, /*순방매장코드*/ -->
+<!--                    c.prdi_sm_code_nm as prdi_sm_nm, /*순방매장명*/ -->
+<!--                    d.em_nm as prdi_em_nm, /*순방사원명*/ -->
+<!--                    ifnull(b.prd_partclr_matter, '') as prd_partclr_matter, /*특이사항*/ -->
+<!--                    case when c.prdi_attend_de is not null -->
+<!--                         then 'Y' -->
+<!--                         else 'N' -->
+<!--                    end prdi_attend_at /*순방매장 출근여부*/ -->
+<!--               from tb_plan_rnd a, -->
+<!--                    tb_plan_rnd_day b, -->
+<!--                    tb_plan_rnd_day_item c, -->
+<!--                    tb_empl_manage d -->
+<!--              where a.base_de = b.base_de -->
+<!--                and a.regist_man = b.regist_man -->
+<!--                and b.base_de = c.base_de -->
+<!--                and b.regist_man = c.regist_man -->
+<!--                and b.plan_de = c.plan_de -->
+<!--                and a.delete_at = 'N' -->
+<!--                and b.delete_at = 'N' -->
+<!--                and c.delete_at = 'N' -->
+<!--                and c.plan_de = #{plan_de} -->
+<!--                and c.base_de = #{base_de} -->
+<!--                and c.regist_man = #{em_no} -->
+<!--                and c.regist_man = d.em_no -->
+<!--              order by c.prdi_sm_code asc -->
+<!--         ]]> -->
+<!--     </select> -->
+
+    <select id="getFileInfo" parameterType="com.dasa.mobile.vo.MobileVo" resultType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            select b.ai_no,
+                   b.ai_path,
+                   b.ai_nm,
+                   b.ai_size
+              from tb_attach_main a,
+                   tb_attach_item b
+             where a.am_no = b.am_no
+               and a.delete_at = 'N'
+               and b.delete_at = 'N'
+               and a.am_no = #{am_no}
+        ]]>
+    </select>
+
+    <insert id="setDeviceError" parameterType="com.dasa.mobile.vo.MobileVo">
+        <![CDATA[
+            insert into tb_device_error (
+                   om_code
+                 , sm_code
+                 , em_no
+                 , type
+                 , os_ver
+                 , app_ver
+                 , manufacture
+                 , model
+                 , la
+                 , lo
+                 , err_code
+                 , err_msg
+                 , regist_man
+                 , regist_de
+                 , updt_man
+                 , updt_de
+            ) values (
+                   #{om_code}
+                 , #{sm_code}
+                 , #{em_no}
+                 , #{device_type}
+                 , #{device_os_version}
+                 , #{device_app_version}
+                 , #{device_manufacture}
+                 , #{device_model}
+                 , #{device_la}
+                 , #{device_lo}
+                 , #{device_error_code}
+                 , #{device_error_msg}
+                 , #{regist_man}
+                 , now()
+                 , #{updt_man}
+                 , now()
+            )
+        ]]>
+    </insert>
+
+</mapper>

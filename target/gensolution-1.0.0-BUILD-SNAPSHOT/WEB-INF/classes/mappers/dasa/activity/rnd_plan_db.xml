@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="actvityRndPlan">
+	<select id="rndPlanList" parameterType="map" resultType="com.dasa.activity.vo.ActivityRndPlanVo">
+		SELECT rn
+		     , MAX(thw_cd) thw_cd
+		     , MAX(thw_nm) thw_nm
+		     , MAX(fri_cd) fri_cd
+		     , MAX(fri_nm) fri_nm
+		     , MAX(sat_cd) sat_cd
+		     , MAX(sat_nm) sat_nm
+		     , MAX(sun_cd) sun_cd
+		     , MAX(sun_nm) sun_nm
+		     , MAX(mon_cd) mon_cd
+		     , MAX(mon_nm) mon_nm
+		     , MAX(tue_cd) tue_cd
+		     , MAX(tue_nm) tue_nm
+		     , MAX(wed_cd) wed_cd
+		     , MAX(wed_nm) wed_nm
+		  FROM (SELECT DS.* 
+		  		  FROM (SELECT (CASE WHEN @basede= PRDI.plan_de AND PRDI.prdi_sm_code &lt;&gt; 'bigo' AND PRDI.prdi_sm_code &lt;&gt; 'evn'  THEN @rownum:=@rownum+1 
+						             WHEN PRDI.prdi_sm_code = 'bigo'  	   THEN 11
+						             WHEN PRDI.prdi_sm_code = 'evn'		   THEN 12
+						             ELSE @rownum:=1 END) rn
+						     , (@basede:=PRDI.plan_de) basede
+						     , IF(PR.base_de = PRDI.plan_de,PRDI.prdi_sm_code,'') AS thw_cd
+						     , IF(PR.base_de = PRDI.plan_de,PRDI.prdi_sm_code_nm,'') AS thw_nm
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 1 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code,''	  )AS fri_cd 
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 1 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code_nm,'')AS fri_nm 
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 2 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code,''	  )AS sat_cd 
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 2 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code_nm,'')AS sat_nm
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 3 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code,''	  )AS sun_cd 
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 3 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code_nm,'')AS sun_nm
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 4 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code,''	  )AS mon_cd
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 4 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code_nm,'')AS mon_nm
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 5 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code,''	  )AS tue_cd
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 5 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code_nm,'')AS tue_nm
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 6 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code,''	  )AS wed_cd
+						     , IF(DATE_FORMAT(PR.base_de + INTERVAL 6 DAY,'%Y%m%d') = PRDI.plan_de,PRDI.prdi_sm_code_nm,'')AS wed_nm
+		  				  FROM tb_plan_rnd PR
+						  LEFT OUTER JOIN tb_plan_rnd_day PRD
+		  					ON PR.base_de = PRD.base_de
+		  				   AND PR.regist_man = PRD.regist_man
+		  				   AND PR.base_de = #{base_de}
+			  		 	   AND PR.regist_man = #{em_no}
+		  				  LEFT OUTER JOIN (SELECT prdi_sm_code
+					      						, prdi_sm_code_nm
+					      						, plan_de 
+					  						 FROM tb_plan_rnd_day_item
+					  						WHERE base_de = #{base_de}
+					  						  AND regist_man = #{em_no} 
+					  						  AND delete_at= 'N'
+											UNION ALL
+										   SELECT 'bigo' prdi_sm_code
+												, prd_partclr_matter prdi_sm_code_nm
+												, plan_de 
+											 FROM tb_plan_rnd_day
+											WHERE base_de = #{base_de}
+											  AND regist_man = #{em_no} 
+											  AND delete_at= 'N'
+										   ) PRDI
+					  		ON PRD.plan_de = PRDI.plan_de  
+					  		 ,(SELECT @basede:='',@rownum:=0 FROM DUAL) RN
+			       	 	 WHERE PR.base_de = #{base_de}
+			  		 	   AND PR.regist_man = #{em_no}
+			  		   ) DS
+		) DS2
+		GROUP BY RN		
+	</select>
+	
+	<select id="rndPlanScheList" parameterType="map" resultType="com.dasa.activity.vo.ActivityRndPlanScheVo">
+		select me_sj
+			 , me_sj_color
+		     , DATE_FORMAT (STR_TO_DATE(schdul_bgnde ,'%Y%m%d') ,'%Y%m%d') bgnde
+		     , DATE_FORMAT (STR_TO_DATE(schdul_endde ,'%Y%m%d') ,'%Y%m%d') endde
+		  from tb_main_event
+		  where me_innb IN(
+		    select me_innb 
+		      from tb_main_event_target 
+		     where delete_at = 'N'
+		       and (sm_code IN (
+		       			SELECT SE.sm_code
+						  FROM tb_str_empl SE
+						  LEFT OUTER JOIN tb_str_manage SM
+						    ON SE.sm_code = SM.sm_code
+						 WHERE SE.em_no = #{em_no}
+						   AND SE.delete_at = 'N'
+		       		)
+		       		or om_code = (select bhf_code from tb_empl_manage where em_no = #{om_code})
+		       		)
+		  )
+		  and delete_at = 'N'
+		  and (
+		      DATE_FORMAT (STR_TO_DATE(schdul_bgnde ,'%Y%m%d') ,'%Y%m%d' )
+		      BETWEEN  #{base_de}  
+		      AND DATE_FORMAT(#{base_de} + INTERVAL 7 DAY,'%Y%m%d')
+		  or  DATE_FORMAT (STR_TO_DATE(schdul_endde ,'%Y%m%d') ,'%Y%m%d')
+		      BETWEEN  #{base_de}  
+		      AND DATE_FORMAT(#{base_de} + INTERVAL 7 DAY,'%Y%m%d')
+		  )	
+	</select>
+	<select id="rndPlanStrList" parameterType="String" resultType="com.dasa.activity.vo.ActivityRndPlanStrVo">
+		SELECT SE.sm_code
+		     , SM.sm_nm 
+		  FROM tb_str_empl SE
+		  LEFT OUTER JOIN tb_str_manage SM
+		    ON SE.sm_code = SM.sm_code
+		 WHERE SE.em_no = #{em_no}
+		   AND SE.delete_at = 'N'
+		   AND SM.sm_oper_at = 'Y'
+		   
+	</select>
+	<select id="rndPlanStrSelectList" parameterType="map" resultType="com.dasa.activity.vo.ActivityRndPlanStrVo">
+		select prdi_sm_code sm_code
+		     , prdi_sm_code_nm sm_nm 
+		  from tb_plan_rnd_day_item
+		where regist_man = #{em_no}
+		and plan_de = #{plan_de}
+	</select>
+	<select id="rndPlanDayList" parameterType="map" resultType="com.dasa.activity.vo.ActivityRndPlanDayVo">
+		select PR.base_de 
+		     , PRD.plan_de     
+		  from tb_plan_rnd PR
+		  LEFT OUTER JOIN tb_plan_rnd_day PRD
+		  ON PR.base_de = PRD.base_de
+		where PR.base_de = #{base_de}
+		  AND PR.regist_man = #{em_no}
+		AND PR.delete_at = 'N'
+	</select>
+	
+	
+	<insert id="rndPlanSave"  parameterType="com.dasa.activity.vo.ActivityRndPlanDayVo">
+		INSERT INTO tb_plan_rnd
+			(base_de, cm_code, om_code, delete_at, regist_man, regist_de, updt_man, updt_de) 
+		VALUES
+			(#{base_de}, #{cm_code}, #{om_code}, 'N', #{regist_man}, NOW(), #{updt_man}, NOW())
+		ON DUPLICATE KEY UPDATE
+		updt_man = #{regist_man},
+		updt_de = NOW()
+	</insert>
+	<insert id="rndPlanDaySave"  parameterType="com.dasa.activity.vo.ActivityRndPlanDayVo">
+		INSERT INTO tb_plan_rnd_day
+			(plan_de, base_de, cm_code, om_code, prd_partclr_matter, delete_at, regist_man, regist_de, updt_man, updt_de) 
+		VALUES
+			(#{plan_de}, #{base_de}, #{cm_code}, #{om_code}, #{prd_partclr_matter}, 'N', #{regist_man}, NOW(), #{updt_man}, NOW())
+		ON DUPLICATE KEY UPDATE		
+		prd_partclr_matter = #{prd_partclr_matter},
+		updt_man = #{regist_man},
+		updt_de = NOW()
+	</insert>
+	<insert id="rndPlanMatterSave"  parameterType="com.dasa.activity.vo.ActivityRndPlanDayVo">
+		INSERT INTO tb_plan_rnd_day
+			(plan_de, base_de, cm_code, om_code, prd_partclr_matter, delete_at, regist_man, regist_de, updt_man, updt_de) 
+		VALUES
+			(#{plan_de}, #{base_de}, #{cm_code}, #{om_code}, #{prd_partclr_matter}, 'N', #{em_no}, NOW(), #{updt_man}, NOW())
+		ON DUPLICATE KEY UPDATE		
+		prd_partclr_matter = #{prd_partclr_matter},
+		updt_man = #{regist_man},
+		updt_de = NOW()
+<!-- 		UPDATE tb_plan_rnd_day -->
+<!-- 		SET prd_partclr_matter = #{prd_partclr_matter},  -->
+<!-- 			updt_man = #{regist_man},  -->
+<!-- 			updt_de = NOW() -->
+<!-- 	  WHERE plan_de = #{plan_de}  -->
+<!-- 	    AND base_de = #{base_de} -->
+	</insert>
+	<delete id="rndPlanDayItemDelete"  parameterType="com.dasa.activity.vo.ActivityRndPlanDayVo">
+		DELETE FROM tb_plan_rnd_day_item
+		 WHERE base_de = #{base_de}
+		   AND plan_de = #{plan_de}
+		   AND regist_man = #{regist_man}
+	</delete>
+	
+	<delete id="rndMobilePlanItemDelete"  parameterType="com.dasa.activity.vo.ActivityRndPlanDayVo">
+		DELETE FROM tb_plan_rnd_day_item
+		 WHERE prdi_sm_code = #{prdi_sm_code}
+		   AND plan_de = #{plan_de}
+		   AND regist_man = #{em_no}
+	</delete>
+	
+	<insert id="rndPlanDayItemSave"  parameterType="map">
+		INSERT INTO tb_plan_rnd_day_item
+			(prdi_sm_code, plan_de, base_de, cm_code, om_code, prdi_sm_code_nm, delete_at, regist_man, regist_de, updt_man, updt_de) 
+		VALUES
+			(#{prdi_sm_code}, #{plan_de}, #{base_de}, #{cm_code}, #{om_code}, #{prdi_sm_code_nm}, 'N', #{regist_man}, NOW(), #{regist_man}, NOW())
+	</insert>
+	
+</mapper>

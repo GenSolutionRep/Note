@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="product">	
+
+<select id="getSQL_productList" resultType="string" parameterType="hashmap" >
+	    select fn_get_product_list('','A')
+	</select>
+	
+	<select id="productList" resultType="com.vertexid.vo.ProductVo" parameterType="hashmap" >
+		SELECT PM_CODE       		
+			 , PM_NM 
+			 , PM_SORT_ORDR
+			 , IF(PM_PARENT_NO IS NULL, 1,2) AS DEPTH			 
+			 , PM_PARENT_NO
+		  FROM tb_prdlst_manage
+	      WHERE DELETE_AT ='N'
+		 ORDER BY PM_DP ,DEPTH , PM_SORT_ORDR
+	</select>
+	
+	<!-- <select id="productList" resultType="com.vertexid.vo.ProductVo" >
+		SELECT PM_CODE
+       		,LPAD(' ', 4*(LEVEL-1)) || PM_NM AS LV_NM
+			 , PM_NM 
+			 , PM_SORT_ORDR
+			 , LEVEL AS DEPTH			 
+			 , IFNULL(PM_PARENT_NO, PM_CODE) PM_PARENT_NO
+		  FROM tb_prdlst_manage
+	      WHERE DELETE_AT ='N'
+		 START WITH PM_PARENT_NO IS NULL
+	   CONNECT BY PRIOR PM_CODE= PM_PARENT_NO
+		 ORDER SIBLINGS BY PM_SORT_ORDR
+	</select> -->
+	
+	<select id="selectProductList" parameterType="string" resultType="com.vertexid.vo.ProductVo" >
+		SELECT
+				PM_CODE       
+				,PM_PARENT_NO
+				,PM_NM      
+				,PM_DP
+				,(CASE WHEN PM_DP='1' THEN '제품군'
+					  WHEN PM_DP='2' THEN '자재그룹'
+					  WHEN PM_DP='3' THEN '제품계층1'
+					  WHEN PM_DP='4' THEN '제품계층2'
+					  ELSE '제품계층3' END) AS PM_DP_NM
+				,PM_SORT_ORDR
+				,PM_MEMO
+				,USE_AT      
+				,DELETE_AT   
+				,REGIST_MAN  
+				,REGIST_DE   
+				,UPDT_MAN    
+				,UPDT_DE  
+		  FROM tb_prdlst_manage A
+	      WHERE DELETE_AT ='N'
+	        AND PM_DP = IF(#{pm_code}='', '1', PM_DP) 
+      		AND (PM_CODE = IF(#{pm_code}='', pm_code, #{pm_code}) 
+      			or PM_PARENT_NO = IF(#{pm_code}='', PM_PARENT_NO, #{pm_code})
+				)
+		 ORDER BY PM_DP, PM_SORT_ORDR, PM_CODE
+	</select>    
+	<select id="productListAll"  resultType="com.vertexid.vo.ProductVo" >
+		SELECT PM_CODE
+			 , PM_PARENT_NO
+		     , PM_NM
+		     , PM_DP
+		  FROM tb_prdlst_manage
+		 WHERE DELETE_AT = 'N'
+		   AND USE_AT = 'Y'
+		 ORDER BY PM_DP ASC
+	</select>    
+	  
+	<select id="selectProductRow" parameterType="string" resultType="com.vertexid.vo.ProductVo" >
+	        SELECT 
+				PM_CODE      
+				,PM_PARENT_NO
+				,PM_NM       
+				,PM_DP
+				,PM_SORT_ORDR
+				,PM_MEMO     
+				,USE_AT      
+				,DELETE_AT   
+				,REGIST_MAN  
+				,REGIST_DE   
+				,UPDT_MAN    
+				,UPDT_DE    
+			FROM tb_prdlst_manage
+			WHERE PM_CODE = #{pm_code}
+  	</select>
+  	
+  	<select id="selectFirstTreeProduct" resultType="string" >
+		SELECT m_no
+		  FROM tb_menu
+	     WHERE m_no != 1
+	       AND m_nm != 'HOME'
+         LIMIT 1
+	</select>
+  	<select id="selectDepthList" parameterType="hashmap" resultType="com.vertexid.vo.ProductVo" >
+	       SELECT 
+			      PM_CODE		
+			      ,PM_PARENT_NO
+			      ,PM_NM		
+			      ,PM_SE		
+			      ,PM_DP		
+			      ,PM_SORT_ORDR
+			      ,PM_MEMO		
+			      ,USE_AT		
+			      ,DELETE_AT	
+			      ,REGIST_MAN	
+			      ,REGIST_DE	
+			      ,UPDT_MAN	
+			FROM tb_prdlst_manage
+			WHERE PM_DP=#{pm_dp}
+			<if test="pm_code!=null and !pm_code.equals('')">
+				AND PM_PARENT_NO = #{pm_code}
+			</if> 
+			AND USE_AT = 'Y'
+			AND DELETE_AT ='N'
+			ORDER BY PM_SORT_ORDR
+  	</select>
+  	
+  	
+  	<update id="updateProduct" parameterType="hashmap">
+        UPDATE
+            tb_prdlst_manage
+        SET
+			 PM_NM             = #{pm_nm}
+			 ,PM_SORT_ORDR      = #{pm_sort_ordr}
+			 ,PM_MEMO           = #{pm_memo}
+			 ,USE_AT            = #{use_at}
+			 ,DELETE_AT         = 'N'
+			 ,UPDT_MAN          = #{updt_man}
+			 ,UPDT_DE           = NOW()
+        WHERE
+            PM_CODE = #{pm_code}
+    </update>
+    
+    <update id="deleteProduct" parameterType="hashmap">
+  	    UPDATE tb_prdlst_manage
+        SET           
+			DELETE_AT    = 'Y'
+			,UPDT_MAN    = #{updt_man}          
+			,UPDT_DE     = NOW()     
+		WHERE PM_CODE LIKE #{pm_code}||'%' 
+    </update>
+    
+    <update id="restoreProduct" parameterType="string">
+  	    UPDATE tb_prdlst_manage
+        SET           
+			DELETE_AT    = 'N'
+			,USE_YN		 = 'Y'
+			,UPDT_MAN    = #{updt_man}          
+			,UPDT_DE     = NOW()     
+		WHERE PM_CODE LIKE #{pm_code}||'%' 
+    </update>
+    
+    <insert id="insertProduct" parameterType="hashmap">
+        INSERT INTO 
+        	tb_prdlst_manage
+			(
+			    PM_CODE
+			    ,PM_PARENT_NO
+			    ,PM_NM
+			    ,PM_SE
+			    ,PM_DP
+			    ,PM_SORT_ORDR
+			    ,PM_MEMO
+			    ,USE_AT
+			    ,DELETE_AT
+			    ,REGIST_MAN
+			    ,REGIST_DE
+			    ,UPDT_MAN
+			    ,UPDT_DE
+			)
+		VALUES
+			(
+				<!-- #{pm_parent_no}||(SELECT to_char(nvl(to_number(MAX(PM_CODE)),0)+1, 'FM00') 
+				   FROM TB_PRDLST_MANAGE 
+				   WHERE PM_DP=#{pm_dp}
+				   <if test="!pm_parent_no.equals('')">
+				   	AND PM_PARENT_NO=#{pm_parent_no}
+				   </if>
+				   ) -->
+				 #{pm_code} 
+			    ,if(#{pm_parent_no} = '',null, #{pm_parent_no})  
+			    ,#{pm_nm}
+			    ,#{pm_se}
+			    ,#{pm_dp}
+			    ,if(#{pm_sort_ordr} = '',null, #{pm_sort_ordr})
+			    ,#{pm_memo}
+			    ,#{use_at}
+			    ,#{delete_at}
+			    ,#{regist_man}
+			    ,NOW()
+			    ,#{regist_man}
+			    ,NOW()
+			)
+    </insert>
+    
+    <select id="checkProductCode" resultType="com.vertexid.vo.ProductVo"  parameterType="string">
+		SELECT IFNULL(PM_CODE,'') as PM_CODE, 
+			   IFNULL(PM_NM,'') as PM_NM,
+			   DELETE_AT
+		  FROM tb_prdlst_manage
+	     WHERE PM_CODE = #{pm_code}
+	</select>
+
+	
+</mapper>
+                                    

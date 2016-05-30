@@ -1,0 +1,1691 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="actvityFixing">	
+	<select id="getActivityFixingView" parameterType="com.dasa.activity.vo.ActivityEmVo" resultType="com.dasa.activity.vo.ActivityEmVo">
+		select COUNT(*) AS DM_TOT_CNT
+       		 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_ATTEND_DE IS NULL, 0, 1))),0) AS DM_ATTEND_Y_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_ATTEND_DE IS NULL, 1, 0))),0) AS DM_ATTEND_N_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_LVFFC_DE IS NULL, 0, 1))),0) AS DM_LVFFC_Y_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 0, IF(DM.DM_LVFFC_DE IS NULL, 1, 0))),0) AS DM_LVFFC_N_CNT
+			 , IFNULL(SUM(IF(DM.DM_VCATN_AT = 'Y', 1, 0)),0) AS DM_VCATN_Y_CNT 	
+		  FROM tb_empl_manage EM
+		  LEFT OUTER JOIN tb_dclz_manage DM
+		    ON EM.em_no = DM.em_no
+		   <if test="!searchDate.equals('')">
+		   AND DM.DM_DT = #{searchDate}
+		   </if>
+		   AND DM.delete_at = 'N'
+		 WHERE EM.em_dty_code = '0000000006'
+			 <choose>
+				<when test="retireYn.equals('NO')">
+				   AND EM.use_at = 'Y'
+				</when>
+				<otherwise>
+				   AND EM.use_at = 'N'
+				</otherwise>
+			</choose>
+		   AND EM.delete_at = 'N'
+		   <if test="!searchBhf.equals('')">
+		   AND EM.BHF_CODE = #{searchBhf}
+		   </if>
+		   <if test="!searchTeam.equals('')">
+		   AND EM.TEAM_CODE = #{searchTeam}
+		   </if>
+	</select>
+
+	<select id="getActivityFixingListCnt" parameterType="com.vertexid.vo.NaviVo" resultType="int">
+			SELECT
+			  COUNT(*)
+			FROM tb_empl_manage EM
+			  LEFT OUTER JOIN tb_orgnzt_manage OM
+			    ON EM.bhf_code = OM.om_code
+			  LEFT OUTER JOIN tb_str_empl SE
+			    ON EM.em_no = SE.em_no
+			   AND SE.delete_at = 'N'
+			   AND SE.em_sub_at = 'N'
+			  LEFT OUTER JOIN tb_str_manage SM
+			    ON SE.sm_code = SM.sm_code
+			   AND SM.delete_at = 'N'
+			  LEFT OUTER JOIN tb_manage_entrps ME
+			    ON SM.me_code = ME.me_code
+			   AND SM.cg_code = ME.cg_code
+			   AND ME.delete_at = 'N'
+			  LEFT OUTER JOIN tb_dclz_manage DM
+			    ON EM.em_no = DM.em_no
+		       <if test="!params.searchDate.equals('')">
+			   AND DM.dm_dt = #{params.searchDate}
+			   </if>
+			   AND DM.delete_at = 'N'
+			 WHERE EM.em_dty_code = '0000000006'
+			 <choose>
+				<when test="params.retireYn.equals('NO')">
+				   AND EM.use_at = 'Y'
+				</when>
+				<otherwise>
+				   AND EM.use_at = 'N'
+				</otherwise>
+			</choose>
+			   <if test="auth_flag > 2 ">
+			   AND EM.EM_NO = #{em_no}			   
+			   </if>
+			<if test="!params.searchStoreNm.equals('')">
+			   AND SM.SM_NM LIKE '%${params.searchStoreNm}%'
+			</if>
+			<if test="!params.searchEmpNm.equals('')">
+			   AND EM.EM_NM LIKE '%${params.searchEmpNm}%'
+			</if>
+			<if test="!params.searchBhf.equals('')">
+			   AND EM.BHF_CODE = #{params.searchBhf}
+			</if>
+			<if test="!params.searchTeam.equals('')">
+			   AND EM.TEAM_CODE = #{params.searchTeam}
+			</if>
+<!-- 			<if test="!params.searchDate.equals('')"> -->
+<!-- 			   AND DM.DM_DT = #{params.searchDate} -->
+<!-- 			</if> -->
+		<choose>
+			<when test="params.searchAttendLvffcAt.equals('AY')">
+			   AND DM.DM_ATTEND_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('AN')">
+			   AND DM.DM_ATTEND_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LY')">
+			   AND DM.DM_LVFFC_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LN')">
+			   AND DM.DM_LVFFC_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('VY')">
+			   AND DM.DM_VCATN_AT = 'Y'
+			</when>
+		</choose>
+	</select>
+	
+	<select id="getActivityFixingList" parameterType="com.vertexid.vo.NaviVo" resultType="com.dasa.activity.vo.ActivityEmVo">
+			SELECT EM.team_code 
+			     , EM.bhf_code
+			     , OM.om_nm AS bhf_nm
+			     , EM.em_no
+			     , EM.em_nm    
+			     , EM.em_dty_code  
+				 , EM.em_mbtl_num
+			     , SE.sm_code
+			     , SM.sm_nm
+			     , ME.me_nm
+			     , fn_img_path(EM.am_no) emp_ai_path
+			     , DATE_FORMAT(DM.DM_ATTEND_DE, '%H:%i') AS dm_attend_de
+				 , DATE_FORMAT(DM.DM_LVFFC_DE, '%H:%i') AS dm_lvffc_de
+				 , if(DM.DM_ATTEND_DE is not null,'Y' ,'N') AS dm_attend_at
+				 , if(DM.DM_LVFFC_DE is not null,'Y' ,'N') AS dm_lvffc_at 
+				 , ifnull(DM.DM_VCATN_AT ,'N') AS dm_vcatn_at 
+				 , DM.dm_at_am_no
+				 , fn_img_path(DM.dm_at_am_no) dm_at_path 
+				 , DM.dm_lv_am_no
+				 , fn_img_path(DM.dm_lv_am_no) dm_lv_path 
+			  FROM tb_empl_manage EM
+			  LEFT OUTER JOIN tb_orgnzt_manage OM
+			    ON EM.bhf_code = OM.om_code
+			  LEFT OUTER JOIN tb_str_empl SE
+			    ON EM.em_no = SE.em_no
+			   AND SE.delete_at = 'N'
+<!-- 			   AND SE.em_sub_at = 'N' -->
+			  LEFT OUTER JOIN tb_str_manage SM
+			    ON SE.sm_code = SM.sm_code
+			   AND SM.delete_at = 'N'
+			  LEFT OUTER JOIN tb_manage_entrps ME
+			    ON SM.me_code = ME.me_code
+			   AND SM.cg_code = ME.cg_code
+			   AND ME.delete_at = 'N'
+			  LEFT OUTER JOIN tb_dclz_manage DM
+			    ON EM.em_no = DM.em_no
+		       <if test="!params.searchDate.equals('')">
+			   AND DM.dm_dt = #{params.searchDate}
+			   </if>
+			   AND DM.delete_at = 'N'
+			 WHERE EM.em_dty_code = '0000000006'
+			 
+			 <choose>
+				<when test="params.retireYn.equals('NO')">
+				   AND EM.use_at = 'Y'
+				</when>
+				<otherwise>
+				   AND EM.use_at = 'N'
+				</otherwise>
+			</choose>
+		       
+			   <if test="auth_flag > 2 ">
+			   AND EM.EM_NO = #{em_no}			   
+			   </if>
+			<if test="!params.searchStoreNm.equals('')">
+			   AND SM.SM_NM LIKE '%${params.searchStoreNm}%'
+			</if>
+			<if test="!params.searchEmpNm.equals('')">
+			   AND EM.EM_NM LIKE '%${params.searchEmpNm}%'
+			</if>
+			<if test="!params.searchBhf.equals('')">
+			   AND EM.BHF_CODE = #{params.searchBhf}
+			</if>
+			<if test="!params.searchTeam.equals('')">
+			   AND EM.TEAM_CODE = #{params.searchTeam}
+			</if>
+<!-- 			<if test="!params.searchDate.equals('')"> -->
+<!-- 			   AND DM.DM_DT = #{params.searchDate} -->
+<!-- 			</if> -->
+		<choose>
+			<when test="params.searchAttendLvffcAt.equals('AY')">
+			   AND DM.DM_ATTEND_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('AN')">
+			   AND DM.DM_ATTEND_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LY')">
+			   AND DM.DM_LVFFC_DE IS NOT NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('LN')">
+			   AND DM.DM_LVFFC_DE IS NULL AND (DM.DM_VCATN_AT is null OR DM.DM_VCATN_AT = 'N')
+			</when>
+			<when test="params.searchAttendLvffcAt.equals('VY')">
+			   AND DM.DM_VCATN_AT = 'Y'
+			</when>
+		</choose>
+		order by EM.em_nm
+		${pagingEnd}
+	</select>
+	
+	<update id="saveActivityFixingEmpAiNo" parameterType="com.dasa.activity.vo.ActivityEmVo">
+		UPDATE TB_EMPL_MANAGE A
+		SET am_no = #{am_no, jdbcType=NUMERIC}
+		   , UPDT_MAN = #{updt_man}
+		WHERE EM_NO = #{em_no, jdbcType=NUMERIC}
+	</update>
+	
+	
+	<!--POG 해더-->
+	<select  id="fixingPogColunmlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT DISTINCT DFAPI.oi_code AS oi_code
+			, DFAPI.oi_code_nm AS oi_code_nm
+			, OI.oi_sort_ordr AS oi_sort_ordr
+	    FROM tb_diary_fix_arr_prdlst_item DFAPI
+	    INNER JOIN tb_option_item OI
+	      ON DFAPI.oi_code = OI.oi_code
+	    WHERE DFAPI.base_de = #{base_de}
+	      AND DFAPI.regist_man = #{em_no}
+    	ORDER BY OI.oi_sort_ordr
+	</select>
+	
+	
+	<!-- POG 리스트 -->
+	<select  id="fixingPoglist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  DFAP.oi_code  
+			, DFAP.oi_code_nm 
+	   		<foreach collection="columnArr" item="item">
+			, MAX(IF(DFAPI.oi_code = '${item.oi_code}', DFAPI.dfapi_pog_value, '')) AS pog_${item.oi_code}
+			, MAX(IF(DFAPI.oi_code = '${item.oi_code}', DFAPI.dfapi_cur_value, '')) AS cur_${item.oi_code}
+			, MAX(IF(DFAPI.oi_code = '${item.oi_code}', DFAPI.dfapi_innb, '')) AS cur_${item.oi_code}_innb
+	        </foreach>
+			, MAX(DFAP.DFAP_POG_RATE) AS dfap_pog_rate  
+			, MAX(DFAP.DFAP_CUR_RATE) AS dfap_cur_rate  
+			, MAX(DFAP.dfap_partclr_matter) AS partclr_matter  
+			, date_format(MAX(DFAP.updt_de),'%Y-%m-%d %H:%i') AS updt_de  
+		FROM  tb_diary_fix_arr_prdlst DFAP  
+		INNER JOIN tb_diary_fix_arr_prdlst_item DFAPI  
+		ON DFAP.dfap_innb  = DFAPI.dfap_innb 
+		INNER JOIN tb_option_item OI  
+		ON DFAP.oi_code = OI.oi_code  
+		WHERE DFAP.base_de = '${base_de}'
+		AND  DFAP.regist_man = '${em_no}'
+		GROUP BY DFAP.oi_code, DFAP.oi_code_nm, OI.oi_sort_ordr  
+		ORDER BY OI.oi_sort_ordr
+	</select>
+	
+	
+	<!--모바일 공통 TEMPLATE 해더-->
+	<select  id="tempColunmlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		select oi_code
+	    	 , oi_nick_nm AS oi_code_nm
+	      from tb_option_item
+	     where oi_type = #{column_code}
+	  	   AND use_at = 'Y'
+  	 	   AND delete_at = 'N'
+		 ORDER BY oi_sort_ordr
+	</select>
+	<!--모바일 공통 TEMPLATE 바디-->
+	<select  id="tempBodylist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+			SELECT OI2.oi_code , OI2.oi_nick_nm AS oi_code_nm,'' AS ${column_key}_innb 
+	   			<foreach collection="columnArr" item="item">
+			    , MAX(IF(OI.oi_code = #{item.oi_code}, TMP.tmp_value, '')) AS "${item.oi_code}" 
+			    , MAX(IF(OI.oi_code = #{item.oi_code}, '', '')) AS "${item.oi_code}_innb" 
+	        	</foreach>
+			    FROM tb_option_item OI
+			    LEFT OUTER JOIN tb_option_item OI2
+			    ON OI.oi_type = #{column_code}
+			    AND OI2.oi_type = #{body_code}        
+			    LEFT OUTER JOIN (
+    
+			    SELECT ${column_key}i_cur_value AS tmp_value 
+			      	 , oi_code  
+			      	 , ${column_key}_oi_code  AS paren_code
+			      	 , base_de
+			      FROM ${column_table}_prdlst_item 
+			     WHERE base_de =(
+					     select max(base_de) 
+					     from ${column_table} 
+					     where regist_man = #{em_no}
+					     <if test="sm_code != null and !sm_code.equals('')">
+						   AND sm_code = #{sm_code}    
+					  	 </if>
+			       )
+      			   AND regist_man = #{em_no}      
+      			   AND sm_code = #{sm_code}      
+			    ) TMP
+			    ON OI.oi_code = TMP.oi_code
+			   AND OI2.oi_code = TMP.paren_code
+			 WHERE OI.oi_type = #{column_code}
+			   AND OI.use_at ='Y'
+			   AND OI.delete_at ='N'
+			   AND OI2.use_at ='Y'    
+			   AND OI2.delete_at ='N'    
+			   AND OI2.oi_type = #{body_code}   
+		     GROUP BY OI2.oi_code, OI2.oi_nick_nm
+			 ORDER BY OI2.oi_sort_ordr
+		
+		
+		
+	</select>
+	<!--모바일&웹 겸용 BIG 해더-->
+	<select  id="fixingBigColunmlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT DISTINCT OI.oi_code AS oi_code
+			, OI.oi_nick_nm AS oi_code_nm
+	    FROM tb_diary_fix_big_prdlst_item DFBPI
+	    <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		</choose>
+	      ON DFBPI.oi_code = OI.oi_code
+	      AND DFBPI.base_de = #{base_de}
+	      AND DFBPI.regist_man = #{em_no}
+	     WHERE OI.oi_type = '0000000036'
+           AND OI.use_at = 'Y'
+		   AND OI.delete_at = 'N' 
+    	ORDER BY OI.oi_sort_ordr
+	</select>
+	<!--모바일&웹 겸용 BIG 리스트 -->
+	<select  id="fixingBiglist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  OI.oi_code  
+			, OI.oi_nick_nm oi_code_nm
+			, ifnull(DFBP.dfbp_innb,'') AS dfbp_innb
+	   		<foreach collection="columnArr" item="item">
+			, MAX(IF(DFBPI.oi_code = #{item.oi_code}, DFBPI.dfbpi_cur_value, '')) AS "${item.oi_code}"
+			, MAX(IF(DFBPI.oi_code = #{item.oi_code}, DFBPI.dfbpi_innb, '')) AS "${item.oi_code}_innb"
+	        </foreach>
+		FROM  tb_diary_fix_big_prdlst DFBP  
+		INNER JOIN tb_diary_fix_big_prdlst_item DFBPI  
+		ON DFBP.dfbp_innb  = DFBPI.dfbp_innb  
+		<choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+				INNER JOIN tb_option_item OI  
+			</otherwise>
+		</choose>
+		ON DFBP.oi_code = OI.oi_code  
+		AND DFBP.base_de = #{base_de}
+		AND  DFBP.regist_man = #{em_no}
+		WHERE OI.oi_type = '0000000037'
+		  AND OI.use_at = 'Y' 
+		  AND OI.delete_at = 'N'
+		GROUP BY DFBP.oi_code, DFBP.oi_code_nm, OI.oi_sort_ordr  
+		ORDER BY OI.oi_sort_ordr
+		
+	</select>
+<!-- 	<select  id="fixingBiglist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" > -->
+<!-- 		SELECT  DFBP.oi_code   -->
+<!-- 			, DFBP.oi_code_nm  -->
+<!-- 			, DFBP.dfbp_innb -->
+<!-- 	   		<foreach collection="columnArr" item="item"> -->
+<!-- 			, MAX(IF(DFBPI.oi_code = #{item.oi_code}, DFBPI.dfbpi_cur_value, '')) AS "${item.oi_code}" -->
+<!-- 			, MAX(IF(DFBPI.oi_code = #{item.oi_code}, DFBPI.dfbpi_innb, '')) AS "${item.oi_code}_innb" -->
+<!-- 	        </foreach> -->
+<!-- 		FROM  tb_diary_fix_big_prdlst DFBP   -->
+<!-- 		INNER JOIN tb_diary_fix_big_prdlst_item DFBPI   -->
+<!-- 		ON DFBP.dfbp_innb  = DFBPI.dfbp_innb   -->
+<!-- 		INNER JOIN tb_option_item OI   -->
+<!-- 		ON DFBP.oi_code = OI.oi_code   -->
+<!-- 		WHERE DFBP.base_de = #{base_de} -->
+<!-- 		AND  DFBP.regist_man = #{em_no} -->
+<!-- 		GROUP BY DFBP.oi_code, DFBP.oi_code_nm, OI.oi_sort_ordr   -->
+<!-- 		ORDER BY OI.oi_sort_ordr -->
+<!-- 	</select> -->
+	<insert id="fixingMoblieBigSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_big(
+			  dfb_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, dfb_partclr_matter
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfb_innb, jdbcType=NUMERIC}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{partclr_matter}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  dfb_partclr_matter = #{partclr_matter}
+			, updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="dfb_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	
+	<insert id="fixingMoblieBigPrdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_big_prdlst(
+			  dfbp_innb
+			, dfb_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfbp_innb, jdbcType=NUMERIC}
+			, #{dfb_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{dfbp_oi_code}
+			, #{dfbp_oi_code_nm}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="dfbp_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<insert id="fixingMoblieBigPrdItemSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_big_prdlst_item(
+			  dfbpi_innb
+			, dfbp_innb
+			, dfb_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, dfbp_oi_code
+			, dfbp_oi_code_nm
+			, dfbpi_cur_value
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfbpi_innb, jdbcType=NUMERIC }
+			, #{dfbp_innb}
+			, #{dfb_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{oi_code}
+			, #{oi_code_nm}
+			, #{dfbp_oi_code}
+			, #{dfbp_oi_code_nm}
+			, #{dfbpi_cur_value, jdbcType=NUMERIC}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  dfbpi_cur_value = #{dfbpi_cur_value}
+			, updt_man = #{em_no}
+			, updt_de = now()
+	</insert>
+	
+	<!-- 모바일 BIG 정보 -->
+	<select  id="fixingBigInfo" resultType="com.dasa.activity.vo.ActivityGridMobileVo" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT dfb_innb AS main_innb
+			 , dfb_partclr_matter AS partclr_matter
+			 , date_format(updt_de,'%Y-%m-%d %H:%i') AS updt_de
+		  FROM  tb_diary_fix_big  
+		WHERE base_de = #{base_de}
+		AND regist_man = #{em_no}
+	</select>
+	
+	<!--PD &웹 겸용 해더-->
+	<select  id="fixingPdColunmlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT DISTINCT OI.oi_code AS oi_code
+	    	, OI.oi_nick_nm AS oi_code_nm
+<!-- 	    , OI.oi_sort_ordr AS oi_sort_ordr -->
+	    FROM tb_diary_fix_pd_prdlst_item DFPPI
+	    <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		</choose>
+	      ON DFPPI.oi_code = OI.oi_code
+	      AND DFPPI.base_de = #{base_de}
+	      AND DFPPI.regist_man = #{em_no}
+	     WHERE OI.oi_type = '0000000038'
+           AND OI.use_at = 'Y' 	      
+	    ORDER BY OI.oi_sort_ordr
+	    
+	</select>
+	<!-- PD &웹 겸용 리스트 -->
+	<select  id="fixingPdlist" resultType="hashmap" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  OI.oi_code  
+			, OI.oi_nick_nm AS oi_code_nm
+			, ifnull(DFPP.dfpp_innb,'') as dfpp_innb
+	   		<foreach collection="columnArr" item="item">
+			, MAX(IF(DFPPI.oi_code = #{item.oi_code}, DFPPI.dfppi_cur_value, '')) AS "${item.oi_code}"
+			, MAX(IF(DFPPI.oi_code = #{item.oi_code}, DFPPI.dfppi_innb, '')) AS "${item.oi_code}_innb"
+	        </foreach>   
+<!-- 	        , date_format(MAX(DFPP.updt_de),'%Y-%m-%d') AS updt_de -->
+		FROM  tb_diary_fix_pd_prdlst DFPP  
+		INNER JOIN tb_diary_fix_pd_prdlst_item DFPPI  
+		ON DFPP.dfpp_innb = DFPPI.dfpp_innb  
+		AND DFPP.base_de = DFPPI.base_de  
+<!-- 		INNER JOIN tb_option_item OI   -->
+		<choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+				INNER JOIN tb_option_item OI  
+			</otherwise>
+		</choose>
+		ON DFPP.oi_code = OI.oi_code  
+		AND DFPP.base_de = #{base_de}
+		AND DFPP.regist_man = #{em_no}
+	    WHERE OI.oi_type = '0000000039'
+          AND OI.use_at = 'Y' 	  
+		GROUP BY DFPP.oi_code, DFPP.OI_CODE_NM, OI.oi_sort_ordr  
+		ORDER BY OI.oi_sort_ordr
+	</select>
+	
+	<!-- 모바일 PD 정보 -->
+	<select  id="fixingPdInfo" resultType="com.dasa.activity.vo.ActivityGridMobileVo" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT dfp_innb AS main_innb
+			 , dfp_partclr_matter AS partclr_matter
+			 , date_format(updt_de,'%Y-%m-%d %H:%i') AS updt_de
+		  FROM  tb_diary_fix_pd  
+		WHERE base_de = #{base_de}
+		AND regist_man = #{em_no}
+	</select>	
+	<!-- 모바일 PD 정보 저장 -->
+	<insert id="fixingMobliePdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_pd(
+			  dfp_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, dfp_partclr_matter
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfp_innb, jdbcType=NUMERIC}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{partclr_matter}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  dfp_partclr_matter = #{partclr_matter}
+			, updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="dfp_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	
+	<insert id="fixingMobliePdPrdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_pd_prdlst(
+			  dfpp_innb
+			, dfp_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfpp_innb, jdbcType=NUMERIC}
+			, #{dfp_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{dfpp_oi_code}
+			, #{dfpp_oi_code_nm}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="dfpp_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<insert id="fixingMobliePdPrdItemSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_pd_prdlst_item(
+			  dfppi_innb
+			, dfpp_innb
+			, dfp_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, dfpp_oi_code
+			, dfpp_oi_code_nm
+			, dfppi_cur_value
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfppi_innb, jdbcType=NUMERIC }
+			, #{dfpp_innb}
+			, #{dfp_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{oi_code}
+			, #{oi_code_nm}
+			, #{dfpp_oi_code}
+			, #{dfpp_oi_code_nm}
+			, #{dfppi_cur_value, jdbcType=NUMERIC}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  dfppi_cur_value = #{dfppi_cur_value}
+			, updt_man = #{em_no}
+			, updt_de = now()
+	</insert>
+	<!--ADROID POG 현재진열줄수 품목리스트-->
+	<select  id="fixingPogPrdList" resultType="map" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  ifnull(dfap_innb,'') dfap_innb
+		      , ifnull(dfa_innb,'') dfa_innb
+		      , OI.oi_code
+		      , OI.oi_nick_nm oi_code_nm
+		      , ifnull(DFAP.dfap_pog_rate,'') dfap_pog_rate
+          	  , ifnull(dfap_cur_rate,'') dfap_cur_rate
+		      , ifnull(dfap_partclr_matter,'') dfap_partclr_matter
+		      , ifnull(date_format(DFAP.updt_de,'%Y-%m-%d %H:%i'),'') AS updt_de
+		 FROM tb_diary_fix_arr_prdlst DFAP
+		 <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		</choose>
+		    ON DFAP.oi_code = OI.oi_code
+		   AND DFAP.base_de = #{base_de}
+		   AND DFAP.regist_man = #{em_no}
+		   WHERE oi_type = '0000000023'
+		   AND OI.use_at = 'Y'
+		ORDER BY OI.oi_sort_ordr, DFAP.dfap_innb  
+		
+	</select>
+	<!--ADROID POG 현재진열줄수 품목 아이템 리스트 -->
+	<select  id="fixingPogPrdItemList" resultType="map" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  IFNULL(DFAPI.dfapi_innb,'') dfapi_innb
+		      , IFNULL(DFAPI.dfap_innb,'') dfap_innb
+		      , IFNULL(DFAPI.dfa_innb,'') dfa_innb
+		      , OI.oi_code AS oi_code
+		      , OI2.oi_code AS dfap_oi_code
+		      , OI.oi_nick_nm AS oi_code_nm
+		      , IFNULL(DFAPI.dfapi_cur_value,'') dfapi_cur_value
+		      , IFNULL(DFAPI.dfapi_pog_value,'') dfapi_pog_value
+		      , IF(OI.oi_code = '00002' ,'1','2') calc_flag
+		    from tb_option_item OI 
+		  LEFT OUTER JOIN tb_option_item OI2
+		  ON OI2.oi_type = '0000000023'
+		  LEFT OUTER JOIN tb_diary_fix_arr_prdlst_item DFAPI
+		   on OI2.oi_code = DFAPI.dfap_oi_code
+		  and OI.oi_code = DFAPI.oi_code
+		  AND DFAPI.regist_man = #{em_no}
+		  and DFAPI.base_de = #{base_de} 
+		  where OI.oi_type = '0000000022'
+		  AND OI.use_at = 'Y'
+		  <if test="updateFlag.equals('false')">
+	      and DFAPI.dfapi_innb is NOT NULL
+	      </if>
+		ORDER BY OI2.oi_code , OI.oi_sort_ordr
+	</select>
+<!-- 	<select  id="fixingPogPrdItemList" resultType="map" parameterType="com.dasa.activity.vo.ActivityGridVo" > -->
+<!-- 		SELECT  dfapi_innb -->
+<!-- 		      , dfap_innb -->
+<!-- 		      , dfa_innb -->
+<!-- 		      , DFAPI.oi_code -->
+<!-- 		      , DFAPI.dfap_oi_code -->
+<!-- 		      , oi_code_nm -->
+<!-- 		      , ifnull(DFAPI.dfapi_cur_value,'') dfapi_cur_value -->
+<!-- 		      , ifnull(DFAPI.dfapi_pog_value,'') dfapi_pog_value -->
+<!-- 		      , IF(DFAPI.oi_code = '00002' ,'1','2') calc_flag -->
+<!-- 		 FROM tb_diary_fix_arr_prdlst_item DFAPI -->
+<!-- 		  LEFT OUTER JOIN tb_option_item OI -->
+<!-- 		    ON DFAPI.oi_code = OI.oi_code -->
+<!--  		 WHERE DFAPI.base_de = #{base_de} -->
+<!-- 		   AND DFAPI.regist_man = #{em_no} -->
+<!-- 		ORDER BY DFAPI.dfap_innb ,OI.oi_sort_ordr, DFAPI.oi_code -->
+<!-- 	</select> -->
+	
+	<select  id="tempFixingPogPrdList" resultType="map" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		select  '' dfap_innb
+			  , '' dfa_innb
+			  , oi_code
+			  , oi_nick_nm oi_code_nm
+			  , '' dfap_pog_rate
+	          , '' dfap_cur_rate
+			  , '' dfap_partclr_matter
+			  , '' AS updt_de
+		  from tb_option_item
+		 where oi_type = #{column_code}
+		  AND use_at = 'Y'
+  	 	  AND delete_at = 'N'
+		 ORDER BY oi_sort_ordr 
+	 
+		
+	</select>
+	<!--ADROID POG 현재진열줄수 품목 아이템 리스트 -->
+	<select  id="tempFixingPogPrdItemList" resultType="map" parameterType="com.dasa.activity.vo.ActivityGridVo" >
+		SELECT  '' AS dfapi_innb
+		      , '' AS dfap_innb
+		      , '' AS dfa_innb
+		      , OI.oi_code AS oi_code
+		      , OI2.oi_code AS dfap_oi_code
+		      , OI.oi_nick_nm AS oi_code_nm
+		      , IFNULL(DFAPI.dfapi_cur_value,'') dfapi_cur_value
+		      , IFNULL(DFAPI.dfapi_pog_value,'') dfapi_pog_value
+		      , IF(OI.oi_code = '00002' ,'1','2') calc_flag
+		    from tb_option_item OI 
+		  LEFT OUTER JOIN tb_option_item OI2
+		    ON OI2.oi_type = #{column_code} 
+		  LEFT OUTER JOIN tb_diary_fix_arr_prdlst_item DFAPI
+		    on OI2.oi_code = DFAPI.dfap_oi_code
+		  and OI.oi_code = DFAPI.oi_code
+		  AND DFAPI.regist_man = #{em_no}
+		  and DFAPI.base_de = ( select max(base_de) from tb_diary_fix_arr where regist_man = #{em_no} ) 
+		  where OI.oi_type = #{body_code} 
+		    AND OI.use_at = 'Y'
+  	 	    AND OI.delete_at = 'N'
+		    AND OI2.use_at = 'Y'
+  	 	    AND OI2.delete_at = 'N'
+		ORDER BY OI2.oi_code , OI.oi_sort_ordr
+	</select>
+	
+		<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="fixingMobliePogSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_arr(
+			  dfa_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfa_innb, jdbcType=NUMERIC}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}			
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="dfa_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="fixingMobliePogPrdSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_arr_prdlst(
+			  dfap_innb
+			, dfa_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, dfap_pog_rate
+			, dfap_cur_rate
+			, dfap_partclr_matter
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfap_innb, jdbcType=NUMERIC}
+			, #{dfa_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{dfap_oi_code}
+			, #{dfap_oi_code_nm}
+			, #{dfap_pog_rate}
+			, #{dfap_cur_rate}
+			, #{dfap_partclr_matter}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  updt_man = #{em_no}
+			, dfap_pog_rate = #{dfap_pog_rate}
+			, dfap_cur_rate = #{dfap_cur_rate}
+			, dfap_partclr_matter = #{dfap_partclr_matter}
+			, updt_de = now()
+		<selectKey resultType="String" keyProperty="dfap_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<!-- 모바일 POG및 현재 진열줄수 저장 -->
+	<insert id="fixingMobliePogPrdItemSave" parameterType="map" useGeneratedKeys="true" >
+		insert into tb_diary_fix_arr_prdlst_item(
+			  dfapi_innb
+			, dfap_innb
+			, dfa_innb
+			, cm_code
+			, om_code
+			, sm_code
+			, oi_code
+			, oi_code_nm
+			, dfap_oi_code
+			, dfap_oi_code_nm
+			, dfapi_pog_value
+			, dfapi_cur_value
+			, base_de
+			, regist_man
+			, regist_de
+			, updt_man
+			, updt_de
+		)
+		values(
+			  #{dfapi_innb, jdbcType=NUMERIC }
+			, #{dfap_innb}
+			, #{dfa_innb}
+			, #{cm_code}
+			, #{om_code}
+			, #{sm_code}
+			, #{oi_code}
+			, #{oi_code_nm}
+			, #{dfap_oi_code}
+			, #{dfap_oi_code_nm}
+			, #{dfapi_pog_value, jdbcType=NUMERIC}
+			, #{dfapi_cur_value, jdbcType=NUMERIC}
+			, #{base_de}			
+			, #{em_no}
+			, now()
+			, #{em_no}
+			, now()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  dfapi_pog_value = #{dfapi_pog_value}
+			, dfapi_cur_value = #{dfapi_cur_value}
+			, updt_man = #{em_no}
+			, updt_de = now()
+	</insert>
+	
+	
+	
+	<select  id="fixingOddlist" resultType="com.dasa.activity.vo.ActivityFixingOddVo" parameterType="map" >
+		SELECT ifnull(DFOP.dfop_innb,'') AS dfop_innb
+		    , ifnull(DFOP.dfop_flag,'') AS  dfop_flag
+		    , ifnull(DFOP.dfop_img_url,'') AS  dfop_img_url
+		    , ifnull(DFOP.dfop_partclr_matter,'') AS  dfop_partclr_matter
+		    , ifnull(date_format(DFOP.UPDT_DE,'%Y-%m-%d %H:%i'),'') AS updt_de  
+		 FROM tb_diary_fix_odd DFO
+		 LEFT OUTER JOIN tb_diary_fix_odd_prdlst DFOP
+		   ON DFO.dfo_innb = DFOP.dfo_innb 
+		  AND DFOP.delete_at = 'N'
+		WHERE DFO.base_de = #{base_de}
+		  AND DFO.regist_man = #{em_no}
+		ORDER BY DFOP.dfop_innb
+	</select>
+	
+	<select  id="m_fixingOddlist" resultType="map" parameterType="map" >
+		SELECT DFOP.dfop_innb
+		    , DFOP.dfop_flag
+		    , DFOP.dfop_img_url
+		    , DFOP.dfop_partclr_matter 
+		 FROM tb_diary_fix_odd DFO
+		 LEFT OUTER JOIN tb_diary_fix_odd_prdlst DFOP
+		   ON DFO.dfo_innb = DFOP.dfo_innb 
+		   AND DFOP.delete_at = 'N'
+		WHERE DFO.base_de = #{base_de}
+		  AND DFO.regist_man = #{em_no}
+		ORDER BY DFOP.dfop_innb
+	</select>
+	<select  id="m_fixingOddlistInfo" resultType="com.dasa.activity.vo.ActivityFixingOddVo" parameterType="map" >
+		SELECT dfo_innb
+		    , date_format(UPDT_DE,'%Y-%m-%d %H:%i') AS updt_de  
+		 FROM tb_diary_fix_odd 
+		WHERE base_de = #{base_de}
+		  AND regist_man = #{em_no}
+	</select>
+	
+	<insert  id="m_optionOddsave" parameterType="map" useGeneratedKeys="true">
+		INSERT INTO tb_diary_fix_odd
+		(	 dfo_innb
+			,cm_code
+			,om_code
+			,sm_code
+			,base_de
+			,delete_at
+			,regist_man
+			,regist_de
+			,updt_man
+			,updt_de
+		)
+		VALUES
+		(
+			 #{dfo_innb, jdbcType=NUMERIC}
+			,#{cm_code}
+			,#{om_code}
+			,#{sm_code}
+			,#{base_de}
+			,'N'
+			,#{em_no}
+			,NOW()
+			,#{em_no}
+			,NOW()
+		)
+		ON DUPLICATE KEY
+		UPDATE    updt_de     = NOW()
+		<selectKey resultType="String" keyProperty="dfo_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	
+	<insert  id="m_optionOddPrdlistsave" parameterType="com.dasa.activity.vo.ActivityFixingOddVo" >
+		INSERT INTO tb_diary_fix_odd_prdlst
+		(
+			 dfop_innb
+			,dfo_innb
+			,cm_code
+			,om_code
+			,sm_code
+			,dfop_flag
+			,dfop_img_url
+			,dfop_partclr_matter
+			,base_de
+			,delete_at
+			,regist_man
+			,regist_de
+			,updt_man
+			,updt_de
+		)
+		VALUES
+		(
+			#{dfop_innb, jdbcType=NUMERIC}
+			,#{dfo_innb, jdbcType=NUMERIC}
+			,#{cm_code}
+			,#{om_code}
+			,#{sm_code}
+			,#{dfop_flag}
+			,#{dfop_img_url}
+			,#{dfop_partclr_matter}
+			,#{base_de}
+			,'N'
+			,#{em_no}
+			,NOW()
+			,#{em_no}
+			,NOW()
+		)
+	</insert>
+	
+	<select  id="fixingEvnColunmlist" resultType="com.dasa.activity.vo.ActivityFixingEvnVo" parameterType="map" >
+		SELECT DFES.dfes_innb
+		     , DFES.oi_code
+		     , DFES.oi_code_nm
+		     , date_format(DFES.updt_de,'%Y-%m-%d %H:%i') AS updt_de
+		 FROM tb_diary_fix_evn DFE
+		 LEFT OUTER JOIN tb_diary_fix_evn_stnd DFES
+		   ON DFE.dfe_innb = DFES.dfe_innb
+         LEFT OUTER JOIN tb_option_item OI
+   	       ON DFES.oi_code = OI.oi_code 
+		WHERE DFE.base_de = #{base_de}
+		  AND DFE.regist_man = #{em_no}
+		ORDER BY OI.oi_sort_ordr
+	</select>
+	<select  id="fixingEvnlist" resultType="com.dasa.activity.vo.ActivityFixingEvnVo" parameterType="map" >
+		SELECT DFES.dfes_innb
+		     , DFESI.dfes_oi_code 
+		     , DFESI.dfes_oi_code_nm
+		     , DFESI.oi_code
+		     , DFESI.oi_code_nm
+		     , GROUP_CONCAT(IFNULL(DFESI.DFESI_IMG_URL,'') ORDER BY DFESI.DFESI_IMG_URL DESC SEPARATOR '|')  AS img_url_arr
+		     , date_format(DFES.UPDT_DE,'%Y-%m-%d %H:%i') AS updt_de
+		 FROM tb_diary_fix_evn_stnd DFES
+		 LEFT OUTER JOIN tb_diary_fix_evn_stnd_item DFESI
+		   ON DFES.dfes_innb = DFESI.dfes_innb
+		   AND DFESI.delete_at = 'N'
+	     LEFT OUTER JOIN tb_option_item OI
+	   	   ON DFESI.oi_code = OI.oi_code 
+		WHERE DFES.base_de =  #{base_de}
+		  AND DFES.regist_man = #{em_no}		  
+	 	GROUP BY DFES.dfes_innb
+		    , DFESI.dfes_oi_code 
+		    , DFESI.dfes_oi_code_nm
+		    , DFESI.oi_code
+		    , DFESI.oi_code_nm
+		    , DFES.updt_de
+	    ORDER BY DFES.dfes_innb ,OI.oi_sort_ordr
+	</select>
+	<select  id="fixingMobileEvnColunmlist_back" resultType="map" parameterType="map" >
+		SELECT DFES.dfes_innb
+			 , DFES.dfe_innb
+		     , DFES.oi_code
+		     , DFES.oi_code_nm
+		     , date_format(DFES.updt_de,'%Y-%m-%d %H:%i') AS updt_de
+		 FROM tb_diary_fix_evn DFE
+		 LEFT OUTER JOIN tb_diary_fix_evn_stnd DFES
+		   ON DFE.dfe_innb = DFES.dfe_innb
+		WHERE DFE.base_de = #{base_de}
+		  AND DFE.regist_man = #{em_no}
+		ORDER BY DFE.dfe_innb
+	</select>
+	<select  id="fixingMobileEvnlist_back" resultType="map" parameterType="map" >
+		SELECT DFESI.dfesi_innb
+			 , DFESI.dfes_innb
+		     , DFESI.dfe_innb 
+		     , DFESI.dfes_oi_code 
+<!-- 		     , DFESI.dfes_oi_code_nm -->
+		     , DFESI.oi_code
+		     , DFESI.oi_code_nm
+		     , GROUP_CONCAT(IFNULL(DFESI.DFESI_IMG_URL,'') ORDER BY DFESI.DFESI_IMG_URL DESC SEPARATOR '|')  AS img_url_arr
+		 FROM tb_diary_fix_evn_stnd DFES
+		 LEFT OUTER JOIN tb_diary_fix_evn_stnd_item DFESI
+		   ON DFES.dfes_innb = DFESI.dfes_innb
+		WHERE DFES.base_de =  #{base_de}
+		  AND DFES.regist_man = #{em_no}
+	 	GROUP BY DFES.dfes_innb
+		    , DFESI.dfes_oi_code 
+		    , DFESI.dfes_oi_code_nm
+		    , DFESI.oi_code
+		    , DFESI.oi_code_nm
+		    , DFES.updt_de
+	</select>
+	
+	
+	
+	
+	
+	
+	<select  id="fixingMobileEvnlist" resultType="map" parameterType="map" >
+<!-- 		SELECT DFES.dfes_innb -->
+<!-- 		     , DFES.dfe_innb 		      -->
+<!-- 		     , DFES.oi_code -->
+<!-- 		     , DFES.oi_code_nm		      -->
+<!-- 		 FROM tb_diary_fix_evn_stnd DFES -->
+<!-- 		WHERE DFES.base_de = #{base_de} -->
+<!-- 		  AND DFES.regist_man = #{em_no} -->
+<!-- 		  AND DFES.delete_at = 'N' -->
+		SELECT IFNULL(DFES.dfes_innb,'') dfes_innb
+		     , IFNULL(DFES.dfe_innb,'') dfe_innb
+		     , OI.oi_code
+		     , OI.oi_nick_nm oi_code_nm		     
+		 FROM tb_option_item OI
+         LEFT OUTER JOIN tb_diary_fix_evn_stnd DFES
+      	   ON OI.oi_code = DFES.oi_code
+		  AND DFES.base_de = #{base_de} 
+		  AND DFES.regist_man =  #{em_no}
+	    WHERE OI.oi_type = #{oi_type}
+	      and OI.use_at = 'Y'
+	</select>
+	<select  id="fixingMobileEvnlistCnt" resultType="int" parameterType="map" >
+		SELECT COUNT(*) cnt	     
+		 FROM tb_diary_fix_evn_stnd 
+		WHERE base_de = #{base_de}
+		  AND regist_man = #{em_no}
+		  AND delete_at = 'N'
+	</select>
+	<select  id="fixingMobileEvnStndlist" resultType="map" parameterType="map" >
+<!-- 		SELECT DFESI.dfes_innb -->
+<!-- 		     , DFESI.dfe_innb  -->
+<!-- 		     , DFESI.dfes_oi_code  -->
+<!-- 		     , DFESI.dfes_oi_code_nm -->
+<!-- 		     , DFESI.oi_code -->
+<!-- 		     , DFESI.oi_code_nm		      -->
+<!-- 		 FROM tb_diary_fix_evn_stnd_item DFESI		   -->
+<!-- 		WHERE DFESI.base_de = #{base_de} -->
+<!-- 		  AND DFESI.regist_man = #{em_no} -->
+<!-- 		  AND DFESI.delete_at = 'N' -->
+<!-- 	    group by DFESI.oi_code -->
+		select DISTINCT IFNULL(DFESI.dfes_innb,'') dfes_innb
+		     , IFNULL(DFESI.dfe_innb,'') dfe_innb 
+		     , OI2.oi_code dfes_oi_code 
+		     , OI2.oi_nick_nm dfes_oi_code_nm
+		     , OI1.oi_code
+		     , OI1.oi_nick_nm oi_code_nm	
+		     , DFESI.dfes_innb	      
+		    from tb_option_item OI1
+		    LEFT OUTER JOIN tb_option_item OI2
+		    ON OI1.oi_type =OI2.oi_code     
+		    LEFT OUTER JOIN tb_diary_fix_evn_stnd_item DFESI
+		    ON OI1.oi_code =DFESI.oi_code
+		    and OI2.oi_code =DFESI.dfes_oi_code
+		     AND DFESI.base_de = #{base_de}
+		    AND DFESI.regist_man = #{em_no}
+		where OI1.oi_type IN (select oi_code from tb_option_item where oi_type =  #{oi_type})
+		and OI1.use_at = 'Y'
+	</select>
+	<select  id="fixingMobileEvnStndItemlist" resultType="map" parameterType="map" >
+		SELECT DFESI.dfesi_innb 
+		   , DFESI.dfes_innb
+		   , DFESI.dfe_innb
+		   , DFESI.oi_code
+		   , DFESI.oi_code_nm
+		   , DFESI.dfes_oi_code
+		   , DFESI.dfes_oi_code_nm
+		   , DFESI.dfesi_img_url
+		 FROM tb_diary_fix_evn_stnd_item DFESI		  
+		WHERE DFESI.base_de = #{base_de}
+		  AND DFESI.regist_man = #{em_no}
+		  AND DFESI.delete_at = 'N'
+	</select>
+	
+	<!--행사매대 저장 -->
+	<insert  id="fixingMobileEvnSave"  parameterType="com.dasa.activity.vo.ActivityEvnMobileSaveVo" useGeneratedKeys="true" >
+		INSERT INTO tb_diary_fix_evn 
+				(
+					   dfe_innb
+					 , cm_code
+				     , om_code
+				     , sm_code
+				     , base_de
+				     , delete_at
+				     , regist_man
+				     , regist_de
+				     , updt_man
+				     , updt_de
+				    )
+				VALUES
+					(
+					   #{dfe_innb, jdbcType=NUMERIC}
+					 , #{cm_code}
+				     , #{om_code}
+				     , #{sm_code}
+				     , #{base_de}
+				     , 'N'
+				     , #{em_no}
+					 , NOW()
+					 , #{em_no}  
+					 , NOW()
+					)
+		ON DUPLICATE KEY
+		UPDATE    updt_de     = NOW()
+		<selectKey resultType="String" keyProperty="dfe_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	
+	</insert>
+	<insert  id="fixingMobileEvnStndSave" parameterType="com.dasa.activity.vo.ActivityEvnMobileSaveVo" useGeneratedKeys="true" >
+		INSERT INTO tb_diary_fix_evn_stnd 
+			(
+					   dfes_innb
+					 , dfe_innb
+					 , cm_code
+				     , om_code
+				     , sm_code
+				     , oi_code
+				     , oi_code_nm
+				     , base_de
+				     , delete_at
+				     , regist_man
+				     , regist_de
+				     , updt_man
+				     , updt_de
+				    )
+				VALUES
+					(
+					   #{dfes_innb, jdbcType=NUMERIC}
+					 , #{dfe_innb, jdbcType=NUMERIC}
+					 , #{cm_code}
+				     , #{om_code}
+				     , #{sm_code}
+				     , #{dfes_oi_code}
+				     , #{dfes_oi_code_nm}
+				     , #{base_de}
+				     , 'N'
+				     , #{em_no}
+					 , NOW()
+					 , #{em_no}  
+					 , NOW()
+					)
+		ON DUPLICATE KEY
+		UPDATE    updt_de     = NOW()
+		
+		<selectKey resultType="String" keyProperty="dfes_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	<insert  id="fixingMobileEvnStndItemSave"  parameterType="com.dasa.activity.vo.ActivityEvnMobileSaveVo" >
+		INSERT INTO tb_diary_fix_evn_stnd_item 
+					(
+					   dfesi_innb
+					 , dfes_innb
+					 , dfe_innb
+					 , cm_code
+				     , om_code
+				     , sm_code
+				     , oi_code
+				     , oi_code_nm
+				     , dfes_oi_code
+				     , dfes_oi_code_nm
+				     , dfesi_img_url
+				     , base_de
+				     , delete_at
+				     , regist_man
+				     , regist_de
+				     , updt_man
+				     , updt_de
+				    )
+				VALUES
+					(
+					   #{dfesi_innb, jdbcType=NUMERIC}
+					 , #{dfes_innb, jdbcType=NUMERIC}
+					 , #{dfe_innb, jdbcType=NUMERIC}
+					 , #{cm_code}
+				     , #{om_code}
+				     , #{sm_code}
+				     , #{oi_code}
+				     , #{oi_code_nm}
+				     , #{dfes_oi_code}
+				     , #{dfes_oi_code_nm}
+				     , #{dfesi_img_url}
+				     , #{base_de}
+				     , 'N'
+				     , #{em_no}
+					 , NOW()
+					 , #{em_no}  
+					 , NOW()
+					)
+	</insert>
+	
+	
+	
+	<select  id="fixingMobileEvnDel" parameterType="com.dasa.activity.vo.ActivityEvnMobileSaveVo" >
+		update tb_diary_fix_evn_stnd_item
+			set delete_at = 'Y'
+			   , updt_man = #{em_no}
+			   , updt_de = now()
+		where dfesi_innb = #{dfesi_innb}
+	</select>
+	
+	
+	
+	<select  id="tempFixingMobileEvnlist" resultType="map" parameterType="String" >
+		select '' AS dfes_innb
+				  , '' AS dfe_innb 		     
+				  , oi_code
+				  , oi_nick_nm oi_code_nm	
+		from tb_option_item
+		where oi_type = #{oi_type}
+   	  	  AND use_at = 'Y'
+  	 	  AND delete_at = 'N'
+		ORDER BY oi_sort_ordr
+	</select>
+	<select  id="tempFixingMobileEvnStndlist" resultType="map" parameterType="String" >
+		select  '' dfes_innb
+		     , '' dfe_innb 
+		     , OI1.oi_type dfes_oi_code 
+		     , OI2.oi_nick_nm dfes_oi_code_nm
+		     , OI1.oi_code
+		     , OI1.oi_nick_nm oi_code_nm		     
+		    from tb_option_item OI1
+		    LEFT OUTER JOIN tb_option_item OI2
+		    ON OI1.oi_type =OI2.oi_code
+		where OI1.oi_type IN (select oi_code from tb_option_item where oi_type = #{oi_type})
+		  and OI1.use_at = 'Y'
+		  and OI2.use_at = 'Y'
+		ORDER BY OI1.oi_sort_ordr, OI2.oi_sort_ordr
+	</select>
+	
+	
+	
+	<select  id="fixingMobileEvnInfo" resultType="com.dasa.activity.vo.ActivityEvnMobileVo" parameterType="map" >
+		SELECT dfe_innb AS main_innb
+		   	 , date_format(updt_de,'%Y-%m-%d %H:%i') AS updt_de
+		 FROM tb_diary_fix_evn		  
+		WHERE base_de = #{base_de}
+		  AND regist_man = #{em_no}
+	</select>
+	
+	
+	
+	
+	
+	<select  id="fixingMobileEvnOptionlist" resultType="map" parameterType="map" >
+		select oi_code
+	       , oi_nick_nm 
+	       , default_at
+	       , use_at
+	       , oi_type
+	    from tb_option_item
+	   where oi_type IN (select oi_code 
+						   from tb_option_item
+	                      where oi_type = '0000000034'
+	    )
+	  	and delete_at = 'N'
+	  	ORDER BY oi_sort_ordr
+	</select>
+	
+	
+	<select  id="fixingWorklist" resultType="com.dasa.activity.vo.ActivityFixingWorkVo" parameterType="map" >
+		SELECT IF(DFWP.regist_man = #{login_no},dfwp_innb,'') AS dfwp_innb
+		     , cm_code
+		     , om_code
+		     , sm_code
+		     , dfwp_thw_at
+		     , dfwp_fri_at
+		     , dfwp_sat_at
+		     , dfwp_sun_at
+		     , dfwp_mon_at
+		     , dfwp_tue_at
+		     , dfwp_wed_at
+		     , base_de
+		     , delete_at
+		     , regist_man
+		     , regist_de
+		     , updt_man
+		     , updt_de
+		 FROM tb_diary_fix_work_plan dfwp
+		WHERE DFWP.base_de = #{base_de}
+		  AND DFWP.regist_man = #{em_no}
+	</select>
+	
+	<select  id="m_fixingWorklist" resultType="com.dasa.activity.vo.ActivityFixingWorkVo" parameterType="map" >
+		SELECT IF(DFWP.regist_man = #{login_no},dfwp_innb,'') AS dfwp_innb
+		     , cm_code
+		     , om_code
+		     , sm_code
+		     , dfwp_thw_at
+		     , dfwp_fri_at
+		     , dfwp_sat_at
+		     , dfwp_sun_at
+		     , dfwp_mon_at
+		     , dfwp_tue_at
+		     , dfwp_wed_at
+		     , base_de
+		     , delete_at
+		     , regist_man
+		     , regist_de
+		     , updt_man
+		     , updt_de
+		 FROM tb_diary_fix_work_plan dfwp
+		WHERE DFWP.base_de = #{base_de}
+		  AND DFWP.regist_man = #{em_no}
+		  AND DFWP.delete_at = 'N'
+	</select>
+	
+	<select  id="fixingTrtlist" resultType="com.dasa.activity.vo.ActivityFixingTrtVo" parameterType="map" >
+		SELECT DFTP.pm_code
+			 , DFTP.pm_code_nm
+		     , DFTP.trtmnt_at
+		     , DFT.base_de
+		     , DFT.regist_man
+		     , date_format(DFT.UPDT_DE,'%Y-%m-%d %H:%i') AS updt_de
+		  FROM tb_diary_fix_trt DFT
+		  LEFT OUTER JOIN tb_diary_fix_trt_prdlst DFTP
+		    ON DFT.dft_innb = DFTP.dft_innb
+		  LEFT OUTER JOIN tb_option_item OI
+       	    ON DFTP.pm_code = OI.oi_code   
+		 WHERE DFT.base_de= #{base_de}
+		   AND DFT.regist_man = #{em_no}
+		   AND DFT.delete_at = 'N'
+		   AND DFTP.delete_at = 'N'
+		 ORDER BY OI.oi_sort_ordr
+	</select>
+	
+	<select  id="m_fixingTrtlist" resultType="hashmap" parameterType="map" >
+		SELECT ifnull(DFTP.dftp_innb,'') dftp_innb
+			 , ifnull(DFTP.dft_innb,'') dft_innb
+	         , OI.oi_code pm_code
+			 , OI.oi_nick_nm pm_code_nm
+		     , ifnull(DFTP.trtmnt_at,'N') trtmnt_at
+		     , ifnull(DFT.base_de,'') base_de
+		  FROM tb_diary_fix_trt DFT
+		  LEFT OUTER JOIN tb_diary_fix_trt_prdlst DFTP
+		    ON DFT.dft_innb = DFTP.dft_innb
+		 <choose>
+			<when test="updateFlag.equals('true')">
+				RIGHT OUTER JOIN tb_option_item OI
+			</when>
+			<otherwise>
+		  		LEFT OUTER JOIN tb_option_item OI
+			</otherwise>
+		</choose>
+       	    ON DFTP.pm_code = OI.oi_code 
+		   AND DFT.base_de = #{base_de}
+		   AND DFT.regist_man = #{em_no}
+		   AND DFT.delete_at = 'N'
+		   AND DFTP.delete_at = 'N'
+  		 where OI.oi_type = '0000000067'
+		 ORDER BY OI.oi_sort_ordr
+<!-- 		SELECT DFTP.dftp_innb -->
+<!-- 			 , DFTP.dft_innb -->
+<!-- 	         , DFTP.pm_code -->
+<!-- 			 , DFTP.pm_code_nm -->
+<!-- 		     , DFTP.trtmnt_at -->
+<!-- 		     , DFT.base_de -->
+<!-- 		  FROM tb_diary_fix_trt DFT -->
+<!-- 		  LEFT OUTER JOIN tb_diary_fix_trt_prdlst DFTP -->
+<!-- 		    ON DFT.dft_innb = DFTP.dft_innb -->
+<!-- 		  LEFT OUTER JOIN tb_option_item OI -->
+<!--        	    ON DFTP.pm_code = OI.oi_code  -->
+<!-- 		 WHERE DFT.base_de= #{base_de} -->
+<!-- 		   AND DFT.regist_man = #{em_no} -->
+<!-- 		   AND DFT.delete_at = 'N' -->
+<!-- 		   AND DFTP.delete_at = 'N' -->
+<!-- 		 ORDER BY OI.oi_sort_ordr -->
+	</select>
+	
+	<select  id="fixingPogCnt" resultType="int" parameterType="map" >
+		SELECT count(*) cnt
+	    FROM tb_diary_fix_arr_prdlst 
+	  WHERE base_de= #{base_de}
+	   AND regist_man = #{em_no}
+	   AND delete_at = 'N'
+	</select>
+	
+	<select  id="m_tempFixingTrtlist" resultType="hashmap" parameterType="map" >
+		SELECT '' dft_innb
+	         , '' dftp_innb
+			 , OI.oi_code  pm_code
+			 , OI.oi_nick_nm pm_code_nm
+		     , ifnull(DFTP.trtmnt_at,'')  trtmnt_at 
+		     , ''  base_de 
+		  FROM tb_diary_fix_trt DFT
+		  LEFT OUTER JOIN tb_diary_fix_trt_prdlst DFTP
+		    ON DFT.dft_innb = DFTP.dft_innb
+		   AND DFT.sm_code = DFTP.sm_code
+   	 	 RIGHT OUTER JOIN tb_option_item OI
+       	    ON DFTP.pm_code = OI.oi_code  
+		   AND DFT.base_de= (select max(base_de) from tb_diary_fix_trt_prdlst where regist_man = #{em_no} )
+		   AND DFT.regist_man = #{em_no}
+		   AND DFT.delete_at = 'N'
+		   AND DFTP.delete_at = 'N'
+		 WHERE OI.oi_type = '0000000067'
+		   AND OI.use_at = 'Y'
+		   AND OI.delete_at = 'N'
+		 ORDER BY OI.oi_sort_ordr
+	</select>
+<!-- 	<select  id="m_tempFixingTrtlist" resultType="hashmap" parameterType="map" > -->
+<!-- 		select '' dft_innb -->
+<!-- 	       	 , '' dftp_innb -->
+<!-- 			 , oi_code pm_code -->
+<!-- 			 , oi_nick_nm pm_code_nm -->
+<!-- 			 , '' trtmnt_at -->
+<!-- 			 , '' base_de -->
+<!-- 	    from tb_option_item OI -->
+<!-- 	  where oi_type = '0000000067' -->
+<!-- 	  order by OI.oi_sort_ordr -->
+<!-- 	</select> -->
+	<select  id="m_fixingTrtlistInfo"  resultType="com.dasa.activity.vo.ActivityFixingTrtVo" parameterType="map">
+		SELECT dft_innb
+			, date_format(DFT.updt_de,'%Y-%m-%d %H:%i') AS updt_de  
+		  FROM tb_diary_fix_trt DFT		  
+		 WHERE DFT.base_de= #{base_de}
+		   AND DFT.regist_man = #{em_no}
+		   AND DFT.delete_at = 'N'	
+	</select>
+	
+	<insert  id="m_fixingTrtsave" parameterType="map">
+		INSERT INTO tb_diary_fix_trt
+					(
+					   dft_innb
+					 , cm_code
+				     , om_code
+				     , sm_code
+				     , base_de
+				     , delete_at
+				     , regist_man
+				     , regist_de
+				     , updt_man
+				     , updt_de
+				    )
+				VALUES
+					(
+					   #{dft_innb, jdbcType=NUMERIC}
+					 , #{cm_code}
+				     , #{om_code}
+				     , #{sm_code}
+				     , #{base_de}
+				     , 'N'
+				     , #{em_no}
+					 , NOW()
+					 , #{em_no}  
+					 , NOW()
+					)
+		ON DUPLICATE KEY
+		UPDATE    updt_de     = NOW()
+		<selectKey resultType="String" keyProperty="dft_innb" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+		
+	<insert  id="m_fixingTrtPrdlstsave" parameterType="map" >
+		
+			INSERT INTO tb_diary_fix_trt_prdlst
+				(
+				   dftp_innb
+				 , dft_innb
+				 , cm_code
+			     , om_code
+			     , sm_code
+			     , pm_code
+			     , pm_code_nm
+			     , trtmnt_at
+			     , base_de
+			     , delete_at
+			     , regist_man
+			     , regist_de
+			     , updt_man
+			     , updt_de
+			    )
+			VALUES
+				(
+				   #{dftp_innb, jdbcType=NUMERIC}
+				 , #{dft_innb, jdbcType=NUMERIC}
+				 , #{cm_code}
+			     , #{om_code}
+			     , #{sm_code}
+			     , #{pm_code}
+			     , #{pm_code_nm}
+			     , #{trtmnt_at}
+			     , #{base_de}
+			     , 'N'
+			     , #{em_no}
+				 , NOW()
+				 , #{em_no}  
+				 , NOW()
+				)
+		ON DUPLICATE KEY
+		UPDATE    trtmnt_at     = #{trtmnt_at},
+				  updt_de       = NOW()
+		
+	</insert>
+	
+	<insert  id="fixingWorkInsert" parameterType="com.dasa.activity.vo.ActivityFixingWorkVo" >
+		INSERT INTO tb_diary_fix_work_plan(
+			   cm_code
+		     , om_code
+		     , dfwp_thw_at
+		     , dfwp_fri_at
+		     , dfwp_sat_at
+		     , dfwp_sun_at
+		     , dfwp_mon_at
+		     , dfwp_tue_at
+		     , dfwp_wed_at
+		     , base_de
+		     , delete_at
+		     , regist_man
+		     , regist_de
+		     , updt_man
+		     , updt_de
+	     )
+	     VALUES(
+	      	   #{cm_code}
+		     , #{om_code}
+		     , #{dfwp_thw_at,jdbcType=CHAR}
+		     , #{dfwp_fri_at,jdbcType=CHAR}
+		     , #{dfwp_sat_at,jdbcType=CHAR}
+		     , #{dfwp_sun_at,jdbcType=CHAR}
+		     , #{dfwp_mon_at,jdbcType=CHAR}
+		     , #{dfwp_tue_at,jdbcType=CHAR}
+		     , #{dfwp_wed_at,jdbcType=CHAR}
+		     , #{base_de}
+		     , 'N'
+		     , #{regist_man}
+			 , NOW()
+			 , #{updt_man}  
+			 , NOW()
+	     )
+	</insert>
+	<update  id="fixingWorkUpdate" parameterType="com.dasa.activity.vo.ActivityFixingWorkVo" >
+		UPDATE tb_diary_fix_work_plan
+		   SET dfwp_thw_at = #{dfwp_thw_at,jdbcType=CHAR}
+		     , dfwp_fri_at = #{dfwp_fri_at,jdbcType=CHAR}
+		     , dfwp_sat_at = #{dfwp_sat_at,jdbcType=CHAR}
+		     , dfwp_sun_at = #{dfwp_sun_at,jdbcType=CHAR}
+		     , dfwp_mon_at = #{dfwp_mon_at,jdbcType=CHAR}
+		     , dfwp_tue_at = #{dfwp_tue_at,jdbcType=CHAR}
+		     , dfwp_wed_at = #{dfwp_wed_at,jdbcType=CHAR}		     
+		     , updt_man    = #{updt_man}          
+			 , updt_de     = NOW() 
+		WHERE dfwp_innb = #{dfwp_innb}
+	</update>
+	
+	<insert id="m_fixingWorkSave" parameterType="com.dasa.activity.vo.ActivityFixingWorkVo">
+		INSERT INTO tb_diary_fix_work_plan
+					(
+					   dfwp_innb
+					 , cm_code
+				     , om_code
+				     , sm_code
+				     , dfwp_thw_at
+				     , dfwp_fri_at
+				     , dfwp_sat_at
+				     , dfwp_sun_at
+				     , dfwp_mon_at
+				     , dfwp_tue_at
+				     , dfwp_wed_at
+				     , base_de
+				     , delete_at
+				     , regist_man
+				     , regist_de
+				     , updt_man
+				     , updt_de
+				    )
+				VALUES
+					(
+					   #{dfwp_innb}
+					 , #{cm_code}
+				     , #{om_code}
+				     , #{sm_code}
+				     , #{dfwp_thw_at,jdbcType=CHAR}
+				     , #{dfwp_fri_at,jdbcType=CHAR}
+				     , #{dfwp_sat_at,jdbcType=CHAR}
+				     , #{dfwp_sun_at,jdbcType=CHAR}
+				     , #{dfwp_mon_at,jdbcType=CHAR}
+				     , #{dfwp_tue_at,jdbcType=CHAR}
+				     , #{dfwp_wed_at,jdbcType=CHAR}
+				     , #{base_de}
+				     , 'N'
+				     , #{regist_man}
+					 , NOW()
+					 , #{updt_man}  
+					 , NOW()
+					)
+		ON DUPLICATE KEY
+		UPDATE     dfwp_thw_at = #{dfwp_thw_at}
+			     , dfwp_fri_at = #{dfwp_fri_at}
+			     , dfwp_sat_at = #{dfwp_sat_at}
+			     , dfwp_sun_at = #{dfwp_sun_at}
+			     , dfwp_mon_at = #{dfwp_mon_at}
+			     , dfwp_tue_at = #{dfwp_tue_at}
+			     , dfwp_wed_at = #{dfwp_wed_at}		     
+			     , updt_man    = #{updt_man}
+				 , updt_de     = NOW()
+	</insert>
+	<update id="fixingMobileOddDel" parameterType="map">
+		DELETE FROM tb_diary_fix_odd_prdlst
+		 WHERE dfop_innb = #{dfop_innb}
+	</update>
+</mapper>

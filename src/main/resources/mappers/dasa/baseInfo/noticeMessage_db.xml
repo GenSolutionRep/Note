@@ -1,0 +1,571 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="NoticeMessage">
+
+    <select id="noticeMessageListCnt" resultType="int" parameterType="com.vertexid.vo.NaviVo">
+
+      <choose>
+        <when test="params.type.equals('WEB') or params.type.equals('MOBILE')">
+        select count(*) from (
+            select a.nm_innb
+                 , a.nm_mssage as nm_massage
+                 , count(c.nm_innb) as total_cnt
+                 , sum(if(nm_recptn_at='Y', 1, 0)) as receive_yn
+                 , b.em_nm as regist_man
+                 , date_format(a.regist_de, "%Y-%m-%d") regist_de
+                 , b.em_dty_code AS 'em_dty_code'
+                 , group_concat(d.em_nm)
+                 , d.em_no as em_no
+        </when>
+        <when test="params.type.equals('CNT')">
+        select count(bb.receive_yn) from (
+            select aa.* from (
+                select a.nm_innb,
+                       case when exists (select 'X'
+                                           from tb_ntcn_mssage_item t
+                                          where t.nm_innb = a.nm_innb
+                                            and t.nm_recptn_at = 'Y'
+                                            and t.em_no = #{params.em_no})
+                            then 'Y'
+                            else 'N'
+                       end as receive_yn
+        </when>
+      </choose>
+              from tb_ntcn_mssage a,
+                   tb_empl_manage b,
+                   tb_ntcn_mssage_item c
+                       left outer join tb_empl_manage d
+                            on c.em_no = d.em_no
+            <if test="params.receiver70400 != null and !params.receiver70400.equals('') ">
+                            and d.em_nm like '%${params.receiver70400}%'
+            </if>
+             where a.regist_man = b.em_no
+               and a.nm_innb = c.nm_innb
+               and a.delete_at = 'N'
+               and b.delete_at = 'N'
+               and c.delete_at = 'N'
+               <!-- and b.use_at = 'Y' -->
+
+            <!-- <if test="params.msg_auth_code != null and !params.msg_auth_code.equals('') ">
+               and b.em_dty_code in (${params.msg_auth_code})
+            </if> -->
+
+            <if test="params.cm_code != null and !params.cm_code.equals('') ">
+               and a.cm_code = #{params.cm_code}
+            </if>
+
+        <!--발신자 필터링-->
+        <choose>
+            <when test="auth_flag != null and !auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and auth_flag == 2">
+                 <choose>
+                      <when test="params.type.equals('WEB')">
+                         and (a.regist_man = #{params.em_no} or a.regist_man in (
+                                                                                 select t.em_no
+                                                                                   from tb_empl_manage t
+                                                                                  where t.cm_code = #{params.cm_code}
+                                                                                    and t.em_dty_code = '0000000009'
+                                                                                    and t.em_no != 'superuser'
+                                                                                    and t.use_at = 'Y'
+                                                                                    and t.delete_at = 'N'
+                                                                                )
+                             )
+                      </when>
+                      <when test="params.type.equals('MOBILE')">
+                         and a.regist_man = #{params.em_no}
+                      </when>
+                 </choose>
+            </when>
+        </choose>
+
+        <!--모바일 인터페이스 사용조건문 시작-->
+        <choose>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag == 2">
+            <!--팀장인 경우-->
+            <![CDATA[
+            and (
+                 /*지점*/
+                 c.om_code in (select t.bhf_code
+                                 from tb_empl_manage t
+                                where t.em_no != 'superuser'
+                                  and t.use_at = 'Y'
+                                  and t.delete_at = 'N'
+                                  and t.em_no = #{params.em_no})
+                )
+            ]]>
+            </when>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag > 2">
+            <!--여사원인 경우-->
+            <![CDATA[
+            and (
+                 /*사원*/
+                 c.em_no in (select t.em_no
+                               from tb_empl_manage t
+                              where t.em_no != 'superuser'
+                                and t.use_at = 'Y'
+                                and t.delete_at = 'N'
+                                and t.em_no = #{params.em_no})
+                )
+            ]]>
+            </when>
+        </choose>
+        <!--모바일 인터페이스 사용조건문 끝-->
+
+          <choose>
+              <when test="params.word70400 != null and !params.word70400.equals('') and params.key70400.equals('sj') ">
+                  and a.nm_mssage like '%${params.word70400}%'
+              </when>
+              <when test="params.word70400 != null and !params.word70400.equals('') and params.key70400.equals('cn') ">
+                  and a.nm_mssage like '%${params.word70400}%'
+              </when>
+          </choose>
+        <choose>
+            <when test="params.search_date_from!=null and !params.search_date_from.equals('') and params.search_date_to!=null and !params.search_date_to.equals('')">
+               and date_format(a.regist_de, '%Y%m%d') between replace(#{params.search_date_from}, '-', '') and replace(#{params.search_date_to}, '-', '')
+            </when>
+        </choose>
+        group by a.nm_innb, a.nm_mssage , b.em_nm ,a.regist_de
+        having group_concat(d.em_nm) is not null
+        order by a.regist_de desc
+    ) as aa
+    where 1=1
+
+    <if test="!params.jijumOmCode70400.equals('') or !params.jijumWord70400.equals('')">
+           and aa.em_no in(
+            select distinct a.em_no
+              from tb_ntcn_mssage_item a,
+                      tb_ntcn_mssage b
+             where a.nm_innb = b.nm_innb
+             <if test="params.jijumWord70400.equals('') and params.jijumOmCode70400 != null and !params.jijumOmCode70400.equals('') ">
+               and a.om_code = #{params.jijumOmCode70400}
+             </if>
+             <if test="params.jijumOmCode70400.equals('') and params.jijumWord70400 != null and !params.jijumWord70400.equals('')">
+               and a.sm_code = #{params.jijumWord70400}
+             </if>
+             <if test="params.jijumOmCode70400 != null and !params.jijumOmCode70400.equals('')  and params.jijumWord70400 != null and !params.jijumWord70400.equals('')">
+               and a.om_code = #{params.jijumOmCode70400}
+               and a.sm_code = #{params.jijumWord70400}
+             </if>
+               and a.delete_at = 'N'
+               and b.delete_at = 'N')
+     </if>
+
+      <choose>
+        <when test="params.type.equals('WEB') or params.type.equals('MOBILE')">
+        </when>
+        <when test="params.type.equals('CNT')">
+        ) as bb
+        where bb.receive_yn = 'N'
+        </when>
+      </choose>
+
+    </select>
+
+    <select id="noticeMessageList" resultType="com.dasa.communication.vo.NoticeMessageVo" parameterType="com.vertexid.vo.NaviVo">
+        ${pagingStart}
+        select abc.* from (
+            select a.nm_innb
+                 , (select t.nmi_innb
+                      from tb_ntcn_mssage_item t
+                     where t.nm_innb = c.nm_innb
+                       and t.em_no = c.em_no
+                   ) as nmi_innb
+                 , a.nm_mssage as nm_massage
+                 , count(c.nm_innb) as total_cnt
+         <choose>
+              <when test="params.type.equals('WEB')">
+                 , sum(if(c.nm_recptn_at='Y', 1, 0)) as receive_yn
+              </when>
+              <when test="params.type.equals('MOBILE')">
+                 , case when exists (select 'X'
+                                       from tb_ntcn_mssage_item t
+                                      where t.nm_innb = a.nm_innb
+                                        and t.nm_recptn_at = 'Y'
+                                        and t.em_no = #{params.em_no})
+                        then 'Y'
+                        else 'N'
+                   end as receive_yn
+              </when>
+         </choose>
+
+                 , b.em_nm as regist_man
+                 , date_format(a.regist_de, "%Y-%m-%d") regist_de
+                 , b.em_dty_code AS 'em_dty_code'
+                 , group_concat(d.em_nm)
+                 , d.em_no as em_no
+              from tb_ntcn_mssage a,
+                   tb_empl_manage b,
+                   tb_ntcn_mssage_item c
+                       left outer join tb_empl_manage d
+                            on c.em_no = d.em_no
+            <if test="params.receiver70400 != null and !params.receiver70400.equals('') ">
+                            and d.em_nm like '%${params.receiver70400}%'
+            </if>
+             where a.regist_man = b.em_no
+               and a.nm_innb = c.nm_innb
+               and a.delete_at = 'N'
+               and b.delete_at = 'N'
+               and c.delete_at = 'N'
+               <!-- and b.use_at = 'Y' -->
+
+            <!--  <if test="params.msg_auth_code != null and !params.msg_auth_code.equals('') ">
+               and b.em_dty_code in (${params.msg_auth_code})
+            </if> -->
+
+            <if test="params.cm_code != null and !params.cm_code.equals('') ">
+               and a.cm_code = #{params.cm_code}
+            </if>
+
+        <!--발신자 필터링-->
+        <choose>
+            <when test="auth_flag != null and !auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and auth_flag == 2">
+                 <choose>
+                      <when test="params.type.equals('WEB')">
+                         and (a.regist_man = #{params.em_no} or a.regist_man in (
+                                                                                 select t.em_no
+                                                                                   from tb_empl_manage t
+                                                                                  where t.cm_code = #{params.cm_code}
+                                                                                    and t.em_dty_code = '0000000009'
+                                                                                    and t.em_no != 'superuser'
+                                                                                    and t.use_at = 'Y'
+                                                                                    and t.delete_at = 'N'
+                                                                                )
+                             )
+                      </when>
+                      <when test="params.type.equals('MOBILE')">
+                         and a.regist_man = #{params.em_no}
+                      </when>
+                 </choose>
+            </when>
+        </choose>
+
+        <!--모바일 인터페이스 사용조건문 시작-->
+        <choose>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag == 2">
+            <!--팀장인 경우-->
+            <![CDATA[
+            and (
+                 /*지점*/
+                 c.om_code in (select t.bhf_code
+                                 from tb_empl_manage t
+                                where t.em_no != 'superuser'
+                                  and t.use_at = 'Y'
+                                  and t.delete_at = 'N'
+                                  and t.em_no = #{params.em_no})
+                )
+            ]]>
+            </when>
+            <when test="params.auth_flag != null and !params.auth_flag.equals('') and params.em_no != null and !params.em_no.equals('') and params.auth_flag > 2">
+            <!--여사원인 경우-->
+            <![CDATA[
+            and (
+                 /*사원*/
+                 c.em_no in (select t.em_no
+                               from tb_empl_manage t
+                              where t.em_no != 'superuser'
+                                and t.use_at = 'Y'
+                                and t.delete_at = 'N'
+                                and t.em_no = #{params.em_no})
+                )
+            ]]>
+            </when>
+        </choose>
+        <!--모바일 인터페이스 사용조건문 끝-->
+
+          <choose>
+              <when test="params.word70400 != null and !params.word70400.equals('') and params.key70400.equals('sj') ">
+                  and a.nm_mssage like '%${params.word70400}%'
+              </when>
+              <when test="params.word70400 != null and !params.word70400.equals('') and params.key70400.equals('cn') ">
+                  and a.nm_mssage like '%${params.word70400}%'
+              </when>
+          </choose>
+        <choose>
+            <when test="params.search_date_from!=null and !params.search_date_from.equals('') and params.search_date_to!=null and !params.search_date_to.equals('')">
+               and date_format(a.regist_de, '%Y%m%d') between replace(#{params.search_date_from}, '-', '') and replace(#{params.search_date_to}, '-', '')
+            </when>
+        </choose>
+            group by a.nm_innb, a.nm_mssage , b.em_nm ,a.regist_de
+            having group_concat(d.em_nm) is not null
+            order by a.regist_de desc ) as abc
+         where 1=1
+         <if test="!params.jijumOmCode70400.equals('') or !params.jijumWord70400.equals('')">
+           and abc.nm_innb in(
+                SELECT a.nm_innb
+                  from tb_ntcn_mssage_item a,
+                       tb_ntcn_mssage b
+                 where a.nm_innb = b.nm_innb
+                 <if test="params.jijumWord70400.equals('') and params.jijumOmCode70400 != null and !params.jijumOmCode70400.equals('') ">
+                   and a.om_code = #{params.jijumOmCode70400}
+                 </if>
+                 <if test="params.jijumOmCode70400.equals('') and params.jijumWord70400 != null and !params.jijumWord70400.equals('')">
+                   and a.sm_code = #{params.jijumWord70400}
+                 </if>
+                 <if test="params.jijumOmCode70400 != null and !params.jijumOmCode70400.equals('')  and params.jijumWord70400 != null and !params.jijumWord70400.equals('')">
+                   and a.om_code = #{params.jijumOmCode70400}
+                   and a.sm_code = #{params.jijumWord70400}
+                 </if>
+                   and a.delete_at = 'N'
+                   and b.delete_at = 'N')
+          </if>
+        ${pagingEnd}
+    </select>
+
+    <select id="receiverdCnt" resultType="com.dasa.communication.vo.NoticeMessageVo" parameterType="com.vertexid.vo.NaviVo">
+          select a.nm_innb ,count(b.nm_innb) as no, sum(if(nm_recptn_at='y', 1, 0)) as receive_yn
+            from tb_ntcn_mssage_item a, tb_ntcn_mssage b
+           where a.nm_innb = b.nm_innb
+        group by b.nm_innb
+        order by a.regist_de desc
+    </select>
+
+
+    <select id="noticeMessageView" parameterType="String" resultType="com.dasa.communication.vo.NoticeMessageVo" >
+         select d.om_nm as om_nm,
+                c.c_name as c_name,
+                b.em_nm as em_nm,
+                d.om_code as om_code
+           from tb_ntcn_mssage_item a,
+                tb_empl_manage b,
+                tb_code c,
+                tb_orgnzt_manage d
+          where 1=1
+            and a.em_no = b.em_no
+            and d.om_code = b.bhf_code
+            and b.em_dty_code = c.c_code
+            and a.delete_at = 'N'
+            and d.delete_at = 'N'
+            and a.nm_innb =  #{bmInnb}
+          group by d.om_nm,  b.em_nm, c.c_name, d.om_code
+          order by d.om_code
+    </select>
+    <select id="noticeAutoMessageComplate" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+        SELECT SM_CODE AS "key"
+             , SM_NM AS "value"
+        FROM tb_str_manage
+        WHERE( CASE WHEN SM_NM &lt; 'ㄱ' THEN UPPER(SUBSTR(SM_NM, 1, 1))
+                    WHEN ASCII('ㄱ') &lt;= ASCII(SM_NM) AND
+                         ASCII(SM_NM) &lt;= ASCII('ㅎ') THEN SM_NM
+                    WHEN SM_NM &lt; '나' then 'ㄱ'
+                    WHEN SM_NM &lt; '다' then 'ㄴ'
+                    WHEN SM_NM &lt; '라' then 'ㄷ'
+                    WHEN SM_NM &lt; '마' then 'ㄹ'
+                    WHEN SM_NM &lt; '바' then 'ㅁ'
+                    WHEN SM_NM &lt; '사' then 'ㅂ'
+                    WHEN SM_NM &lt; '아' then 'ㅅ'
+                    WHEN SM_NM &lt; '자' then 'ㅇ'
+                    WHEN SM_NM &lt; '차' then 'ㅈ'
+                    WHEN SM_NM &lt; '카' then 'ㅊ'
+                    WHEN SM_NM &lt; '타' then 'ㅋ'
+                    WHEN SM_NM &lt; '파' then 'ㅌ'
+                    WHEN SM_NM &lt; '하' then 'ㅍ'
+                    ELSE 'ㅎ'
+               END = #{keyword}
+         OR  SM_NM LIKE concat('%',#{keyword},'%'))
+        AND DELETE_AT = 'N'
+        GROUP by SM_NM
+    </select>
+
+    <!-- 메인화면 매장명 자동검색-->
+    <select id="msgAutoComplate" resultType="com.vertexid.vo.KeyValueVo" parameterType="map" >
+        SELECT SM_CODE AS "key"
+             , SM_NM AS "value"
+        FROM tb_str_manage
+        WHERE( CASE WHEN SM_NM &lt; 'ㄱ' THEN UPPER(SUBSTR(SM_NM, 1, 1))
+                    WHEN ASCII('ㄱ') &lt;= ASCII(SM_NM) AND
+                         ASCII(SM_NM) &lt;= ASCII('ㅎ') THEN SM_NM
+                    WHEN SM_NM &lt; '나' then 'ㄱ'
+                    WHEN SM_NM &lt; '다' then 'ㄴ'
+                    WHEN SM_NM &lt; '라' then 'ㄷ'
+                    WHEN SM_NM &lt; '마' then 'ㄹ'
+                    WHEN SM_NM &lt; '바' then 'ㅁ'
+                    WHEN SM_NM &lt; '사' then 'ㅂ'
+                    WHEN SM_NM &lt; '아' then 'ㅅ'
+                    WHEN SM_NM &lt; '자' then 'ㅇ'
+                    WHEN SM_NM &lt; '차' then 'ㅈ'
+                    WHEN SM_NM &lt; '카' then 'ㅊ'
+                    WHEN SM_NM &lt; '타' then 'ㅋ'
+                    WHEN SM_NM &lt; '파' then 'ㅌ'
+                    WHEN SM_NM &lt; '하' then 'ㅍ'
+                    ELSE 'ㅎ'
+               END = #{keyword}
+         OR  SM_NM LIKE concat('%',#{keyword},'%'))
+
+    <if test="omCodeList.size() != 0">
+        AND om_code in
+        <foreach item="om_code" index="index" collection="omCodeList" open="(" separator="," close=")">
+            #{om_code}
+        </foreach>
+    </if>
+        AND SM_OPER_AT = 'Y' 
+        AND USE_AT = 'Y'
+        AND DELETE_AT = 'N'
+        GROUP by SM_NM
+    </select>
+
+    <insert id="noticeMessageInsert" parameterType="map" keyColumn="nm_innb" useGeneratedKeys="true" >
+        INSERT INTO
+        tb_ntcn_mssage_item (
+         <!--  NMI_INNB -->
+          NM_INNB
+        , OM_CODE
+        , SM_CODE
+        , EM_NO
+        , NM_RECPTN_AT
+        , DELETE_AT
+        , REGIST_MAN
+        , REGIST_DE
+        , UPDT_MAN
+        , UPDT_DE
+        )
+        VALUES (
+          <!-- #{nmi_innb}  -->
+          #{nm_innb}
+        , #{om_code}
+        , #{sm_code}
+        , #{em_code}
+        , ''
+        , 'N'
+        , #{regist_man}
+        , now()
+        , #{regist_man}
+        , now()
+        )
+    </insert>
+    <insert id="noticeMessageMasterInsert" parameterType="com.dasa.communication.vo.NoticeMessageVo" useGeneratedKeys="true"  keyProperty="nm_innb" >
+        INSERT INTO
+        tb_ntcn_mssage (
+         <!-- NM_INNB -->
+         <!-- SM_CODE
+         , OM_CODE-->
+          CM_CODE
+        , nm_mssage
+        , DELETE_AT
+        , REGIST_MAN
+        , REGIST_DE
+        , UPDT_MAN
+        , UPDT_DE
+        )
+        VALUES (
+          <!-- #{nm_innb} -->
+          <!-- #{sm_code}
+        , #{om_code} -->
+          #{cm_code}
+        , #{nm_massage}
+        , 'N'
+        , #{regist_man}
+        , now()
+        , #{regist_man}
+        , now()
+        )
+        <selectKey resultType="String" order="AFTER" keyProperty="nm_innb"  >
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <update id="noticeMessageUpdate" parameterType="com.dasa.communication.vo.NoticeMessageVo">
+        UPDATE TB_BBS_MANAGE
+          SET BM_ALL_NTCAT = #{bm_all_ntcat,jdbcType=VARCHAR}
+            , BM_UPEND_AT  = #{bm_upend_at,jdbcType=VARCHAR}
+            , BM_SJ        = #{bm_sj}
+            , BM_CN        = #{bm_cn}
+            , UPDT_MAN     = #{regist_man,jdbcType=VARCHAR}
+            , UPDT_DE      = now()
+        WHERE BM_INNB = #{bm_innb}
+    </update>
+
+
+
+    <select id="selectReceivedList_OLD" resultType="com.dasa.communication.vo.NoticeMessageVo" parameterType="com.dasa.communication.vo.NoticeMessageVo" >
+        SELECT A.EM_NO, A.EM_NM, A.EM_ID , B.OM_NM
+          FROM tb_empl_manage A, tb_orgnzt_manage B
+         WHERE A.TEAM_CODE = B.OM_CODE
+        <if test="om_cd != null and !om_cd.equals('') ">
+           AND B.OM_CODE IN (SELECT OM_CODE FROM tb_orgnzt_manage WHERE CM_CODE = '001' AND OM_PARENT_NO = #{om_cd}
+           AND OM_ORGNZT_SE='2' AND USE_AT ='Y' AND DELETE_AT ='N')
+        </if>
+        <if test="sm_cd != null and !sm_cd.equals('') ">
+           AND B.OM_CODE = #{parent_no}
+        </if>
+      GROUP BY A.EM_NO, A.TEAM_CODE, A.EM_NM, A.EM_ID ,  B.OM_NM
+    </select>
+
+    <select id="noticePopupOmlist" resultType="com.dasa.communication.vo.NoticeMessageVo" parameterType="String" >
+        SELECT A.sm_code, A.sm_nm
+          FROM tb_str_manage A
+         WHERE 1=1
+           AND A.om_code  = #{om_code}
+           <!-- AND A.USE_AT = 'Y' -->
+           AND A.DELETE_AT = 'N'
+           AND A.SM_OPER_AT = 'Y'
+      GROUP BY A.sm_nm
+    </select>
+
+    <select id="selectReceivedList" resultType="com.dasa.communication.vo.NoticeMessageVo" parameterType="map" >
+        <![CDATA[
+            SELECT A.EM_NO, A.EM_NM, C.SM_NM
+                  ,B.SM_CODE AS "sm_code"
+                  ,A.BHF_CODE AS "om_cd"
+              FROM tb_empl_manage A
+                    LEFT OUTER JOIN tb_str_empl B
+                         ON A.EM_NO = B.EM_NO
+                         AND B.DELETE_AT = 'N'
+                    LEFT OUTER JOIN tb_str_manage C
+                         ON  B.OM_CODE = C.OM_CODE
+                         AND B.SM_CODE = C.SM_CODE
+                         AND C.USE_AT = 'Y' 
+                         AND C.DELETE_AT = 'N'
+            WHERE 1=1
+              AND A.EM_NO != 'superuser'
+              AND A.EM_DTY_CODE < #{auth_flag}
+              AND A.EM_DTY_CODE != '0000000008'
+              AND A.BHF_CODE = #{parent_no}
+              AND A.DELETE_AT = 'N'
+           /* AND B.DELETE_AT = 'N'
+              AND A.USE_AT = 'Y'
+              AND C.DELETE_AT = 'N' */
+        ]]>
+        <if test="sm_cd!=null and !sm_cd.equals('')">
+               AND B.SM_CODE = #{sm_cd}
+               AND C.SM_CODE = #{sm_cd}
+        </if>
+            GROUP BY A.em_nm
+    </select>
+
+    <select id="noticeMessagePushList" parameterType="map" resultType="com.dasa.communication.vo.NoticeMessageVo" >
+        <![CDATA[
+            select a.nm_innb as "nm_innb",
+                   a.nm_mssage as "nm_massage",
+                   d.em_nm as "em_nm",
+                   d.em_no as "em_no",
+                   d.em_push_id as "em_push_id",
+                   d.em_device_type as "em_device_type"
+              FROM tb_ntcn_mssage A,
+                   tb_ntcn_mssage_item B,
+                   tb_empl_manage D
+             WHERE 1=1
+               and a.nm_innb = b.nm_innb
+               and b.em_no = d.em_no
+               and d.em_dty_code < #{auth_flag}
+               and d.em_dty_code != '0000000008'
+               and a.nm_innb = #{nm_innb}
+               and d.em_push_id is not null
+               and d.em_push_id != ''
+               and d.em_no != 'superuser'
+               and a.delete_at = 'N'
+               and b.delete_at = 'N'
+               and d.delete_at = 'N'
+         order by em_device_type desc
+        ]]>
+    </select>
+
+    <!--목록조회한 알림메세지 읽음처리-->
+    <update id="changeReadY" parameterType="com.dasa.communication.vo.NoticeMessageVo">
+        <![CDATA[
+            update tb_ntcn_mssage_item
+               set nm_recptn_at = 'Y'
+             where nmi_innb in (${nmi_innb})
+        ]]>
+    </update>
+
+</mapper>

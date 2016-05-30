@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="actvityOption">	
+
+	<select id="optionView" resultType="com.dasa.activity.vo.ActivityOptionVo" parameterType="String" >
+		SELECT OI_CODE			
+             , OI_NM			
+             , OI_NICK_NM			
+             , OI_TYPE			
+             , OI_SORT_ORDR		
+             , DEFAULT_AT		
+             , USE_AT		
+             , OI_PARN_CODE		
+		  FROM tb_option_item
+		 WHERE DELETE_AT = 'N'     		
+		   AND OI_CODE = #{optionCode}
+	</select>
+	
+	
+	
+	<select id="optionTree" resultType="com.dasa.activity.vo.ActivityOptionTreeVo" parameterType="Map" >
+		SELECT C_CODE			AS OI_CODE
+			 , C_NAME			AS OI_NM
+			 , C_PARENT_CODE 	AS OI_TYPE
+		     , C_ORDER 			AS OI_SORT_ORDR
+		     , IF(c_parent_code = '0000000020','N','Y') AS ADD_FLAG
+		     , IF(c_parent_code = '0000000020','1','2')  AS DEPTH 
+		  FROM tb_code A
+		 WHERE C_IS_DEL = 'N'
+		  AND c_parent_code IN('0000000020','0000000032','0000000033')
+		 UNION ALL
+		SELECT OI_CODE			AS OI_CODE
+		       , OI_NM			AS OI_NM
+		       , OI_TYPE			AS OI_TYPE
+		       , OI_SORT_ORDR		AS OI_SORT_ORDR
+		       , IF(OI_TYPE = '0000000034','Y','N') AS ADD_FLAG
+		       , '3' AS DEPTH 
+		  FROM tb_option_item
+		 WHERE DELETE_AT = 'N'
+		ORDER BY DEPTH, OI_SORT_ORDR 
+	</select>
+	<select id="optionTree2" resultType="com.dasa.activity.vo.ActivityOptionTreeVo" parameterType="Map" >
+		SELECT A.OI_CODE
+			 , A.OI_NM
+			 , A.OI_TYPE
+			 , A.OI_SORT_ORDR
+			 , DECODE(LEVEL,'2','Y',DECODE(OI_TYPE,'0000000034','Y','N')) AS ADD_FLAG
+	      	 , LEVEL DEPTH       
+  		  FROM (SELECT C_CODE			AS OI_CODE
+					 , C_NAME			AS OI_NM
+					 , C_PARENT_CODE 	AS OI_TYPE
+		       		 , C_ORDER 			AS OI_SORT_ORDR
+				  FROM tb_code A
+				 WHERE C_IS_DEL = 'N'
+				 UNION ALL
+     			SELECT OI_CODE			AS OI_CODE
+		             , OI_NM			AS OI_NM
+		             , OI_TYPE			AS OI_TYPE
+		             , OI_SORT_ORDR		AS OI_SORT_ORDR
+     			  FROM tb_option_item
+     			 WHERE DELETE_AT = 'N'     			
+			) A  		 
+		 START WITH OI_TYPE ='0000000020'
+	   CONNECT BY PRIOR OI_CODE = OI_TYPE
+		 ORDER SIBLINGS BY OI_SORT_ORDR NULLS FIRST, OI_SORT_ORDR, OI_NM
+	</select>
+	
+	<select id="optionList" resultType="com.dasa.activity.vo.ActivityOptionVo" parameterType="String" >
+		SELECT oi_code			
+             , oi_nm			
+             , oi_nick_nm			
+             , oi_type			
+             , oi_sort_ordr		
+             , default_at		
+             , use_at	
+             , oi_parn_code	
+		  FROM tb_option_item
+		 WHERE delete_at = 'N'     		
+		   AND oi_type = #{option_code}
+		   ORDER BY OI_SORT_ORDR ASC
+	</select>
+
+
+	<select id="fullOptionList" parameterType="String" resultType="com.dasa.activity.vo.ActivityOptionVo" >
+		SELECT IME_CODE AS CODE
+			, IME_NIKE_NM   AS NIKE_NM
+			, IME_NM		AS NM
+			, IME_SORT_ORDR AS SORT_ORDR
+			, DEFAULT_AT
+			, USE_AT
+		FROM tb_item_manage_entrps
+		WHERE IME_TYPE = #{option_code} 
+		UNION ALL
+		SELECT 
+		      IMP_CODE AS CODE     
+			, IMP_NIKE_NM   AS NIKE_NM       
+			, IMP_NM        AS NM  
+			, IMP_SORT_ORDR AS SORT_ORDR
+			, DEFAULT_AT
+			, USE_AT
+		FROM tb_item_manage_prdlst
+	   WHERE IMP_TYPE = #{option_code}
+		ORDER BY SORT_ORDR ASC
+	</select>
+	
+	<insert id="optionSave" parameterType="com.dasa.activity.vo.ActivityOptionVo" useGeneratedKeys="true"  keyProperty="oi_code" >
+		INSERT INTO 
+		tb_option_item (
+		  OI_CODE
+		, OI_PARN_CODE
+		, OI_NM
+		, OI_NICK_NM
+		, OI_SORT_ORDR		
+		, OI_TYPE
+		, DEFAULT_AT
+		, USE_AT
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		 #{oi_code}
+		, #{oi_parn_code}
+		, #{oi_nm}
+		, #{oi_nick_nm}
+		, #{oi_sort_ordr}
+		, #{oi_type}
+		, #{default_at}
+		, #{use_at}
+		, 'N'
+		, #{regist_man}
+		, NOW()
+		, #{regist_man}
+		, NOW()
+		)
+	 	<selectKey resultType="String" order="BEFORE" keyProperty="oi_code"  >
+		SELECT RIGHT(CONCAT('0000', IFNULL(CAST(MAX(OI_CODE)+1 AS SIGNED), 1)), 5) AS oi_code from tb_option_item
+		</selectKey>
+	</insert>
+	<insert id="optionUpdate" parameterType="com.dasa.activity.vo.ActivityOptionVo">
+		UPDATE tb_option_item
+		   SET OI_NM        = #{oi_nm}       
+			 , OI_PARN_CODE = #{oi_parn_code}  
+			 , OI_NICK_NM   = #{oi_nick_nm}  
+			 , OI_SORT_ORDR = #{oi_sort_ordr}   
+			 , DEFAULT_AT   = #{default_at}
+			 , USE_AT       = #{use_at}
+			 , UPDT_MAN     = #{regist_man}   
+			 , UPDT_DE      = NOW()         
+		 WHERE OI_CODE      = #{oi_code}
+	</insert>
+	
+	<select id="optionUsingCheck" resultType="int" parameterType="map" >
+		select count(*) cnt
+		  from tb_option_item
+		 where OI_NICK_NM = #{oi_nick_nm}
+		   and oi_type = #{oi_type}
+		   and oi_code != #{oi_code}
+	</select>
+	<select id="optionTrtUsingCheck" resultType="int" parameterType="map" >
+		select count(*) cnt
+		  from tb_option_item
+		 where oi_parn_code = #{oi_parn_code}
+		   and oi_type = #{oi_type}
+		   and oi_code != #{oi_code}
+	</select>
+	
+	<insert id="optionCustomInsert" parameterType="map" useGeneratedKeys="true"  keyProperty="oi_code" >
+		INSERT INTO 
+		tb_option_item (
+		  OI_CODE
+		, OI_PARN_CODE
+		, OI_NM
+		, OI_NICK_NM
+		, OI_SORT_ORDR		
+		, OI_TYPE
+		, DEFAULT_AT  
+		, USE_AT
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		 #{oi_code}
+		, #{oi_parn_code, jdbcType=VARCHAR}
+		, #{oi_nm}
+		, #{oi_nick_nm, jdbcType=VARCHAR}
+		, #{oi_sort_ordr, jdbcType=VARCHAR}
+		, #{oi_type}
+		, #{default_at}		
+		, #{use_at}
+		, 'N'
+		, #{regist_man}
+		, NOW()
+		, #{regist_man}
+		, NOW()
+		)
+	 	<selectKey resultType="String" order="BEFORE" keyProperty="oi_code"  >
+<!-- 		SELECT LAST_INSERT_ID() -->
+		SELECT RIGHT(CONCAT('0000', IFNULL(CAST(MAX(OI_CODE)+1 AS SIGNED), 1)), 5) AS oi_code from tb_option_item
+		</selectKey>
+	</insert>
+	<insert id="optionCustomUpdate" parameterType="map">
+		UPDATE tb_option_item
+		   SET OI_NM        = #{oi_nm}       
+			 , OI_PARN_CODE = #{oi_parn_code, jdbcType=VARCHAR}  
+<!-- 			 , OI_NICK_NM   = #{oi_nick_nm, jdbcType=VARCHAR}   -->
+			 , OI_SORT_ORDR = #{oi_sort_ordr, jdbcType=VARCHAR}   
+			 , USE_AT       = #{use_at}
+			 , UPDT_MAN     = #{regist_man}   
+			 , UPDT_DE      = NOW()         
+		 WHERE OI_CODE      = #{oi_code}
+	</insert>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<insert id="entOptionSave" parameterType="map">
+		INSERT INTO 
+		tb_item_manage_entrps (
+		  IME_CODE
+		, IME_NM
+		, IME_NIKE_NM
+		, IME_SORT_ORDR
+		, DEFAULT_AT
+		, USE_AT
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		, IME_TYPE
+		)
+		VALUES (
+		  (SELECT TO_CHAR(NVL(TO_NUMBER(MAX(IME_CODE)),0)+1, 'FM00000') FROM tb_item_manage_entrps)
+		, #{ime_nm}
+		, #{ime_nike_nm}
+		, #{ime_sort_ordr}
+		, #{default_at}
+		, #{use_at}
+		, 'N'
+		, #{regist_man}
+		, NOW()
+		, #{regist_man}
+		, NOW()
+		, #{ime_type}
+		)
+	</insert>
+	<insert id="entOptionUpdate" parameterType="map">
+		UPDATE tb_item_manage_entrps
+		SET  IME_NM         =  #{ime_nm}       
+			, IME_NIKE_NM    =  #{ime_nike_nm}  
+			, IME_SORT_ORDR  =  #{ime_sort_ordr}   
+			, USE_AT         =  #{use_at}
+			, UPDT_MAN       =  #{regist_man}   
+			, UPDT_DE        =  NOW()         
+		WHERE IME_CODE       = #{ime_code}
+	</insert>
+	
+	
+	<insert id="prdOptionSave" parameterType="map">
+		INSERT INTO 
+		tb_item_manage_prdlst (
+		  IMP_CODE
+		, IMP_NM
+		, IMP_NIKE_NM
+		, IMP_SORT_ORDR
+		, DEFAULT_AT
+		, USE_AT
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		, IMP_TYPE
+		)
+		VALUES (
+		  (SELECT TO_CHAR(NVL(TO_NUMBER(MAX(IMP_CODE)),0)+1, 'FM00000') FROM tb_item_manage_prdlst)
+		, #{imp_nm}
+		, #{imp_nike_nm}
+		, #{imp_sort_ordr}
+		, #{default_at}
+		, #{use_at}
+		, 'N'
+		, #{regist_man}
+		, NOW()
+		, #{regist_man}
+		, NOW()
+		, #{imp_type}
+		)
+	</insert>
+	<insert id="prdOptionUpdate" parameterType="map">
+		UPDATE tb_item_manage_prdlst
+		   SET IMP_NM         =  #{imp_nm}       
+			 , IMP_NIKE_NM     =  #{imp_nike_nm}  
+			 , IMP_SORT_ORDR  =  #{imp_sort_ordr}   
+			 , USE_AT         =  #{use_at}
+			 , UPDT_MAN       =  #{regist_man}   
+			 , UPDT_DE        =  NOW()         
+		 WHERE IMP_CODE       =  #{imp_code}
+	</insert>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	<select id="actvityFixingListCnt" resultType="int" parameterType="com.vertexid.vo.NaviVo">
+		SELECT COUNT(*)
+		  FROM TB_BBS_MANAGE
+		 WHERE DELETE_AT = 'N'
+<!-- 		<if test="params.word != null and !params.word.equals('')"> -->
+<!-- 			AND ${params.} LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+<!-- 		<if test="params.pramId != null and !params.pramId.equals('')"> -->
+<!-- 			AND BM_CN LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+		<choose>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('sj') ">
+				AND BM_SJ LIKE '%${params.word}%'
+			</when>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('cn') ">
+				AND BM_CN LIKE '%${params.word}%'
+			</when>
+		</choose>	
+		
+	</select>
+	<select id="actvityFixingList" resultType="com.dasa.communication.vo.NoticeVo" parameterType="com.vertexid.vo.NaviVo">
+	${pagingStart}
+		SELECT BM_INNB
+		     , BM_SJ
+			 , E.EM_NM REGIST_MAN
+			 , (SELECT COUNT(*) FROM TB_ATTACH_ITEM  WHERE AI_NO = B.ATCHMNFL_INNB AND DELETE_AT = 'N') AI_CNT
+       		 , date_format(B.REGIST_DE,'Y%-m%-d%') REGIST_DE       
+		  FROM TB_BBS_MANAGE B
+      	  LEFT OUTER JOIN  TB_EMPL_MANAGE E
+      		ON B.REGIST_MAN = E.EM_NO
+		 WHERE B.DELETE_AT = 'N'
+<!-- 		<if test="params.word != null and !params.word.equals('')"> -->
+<!-- 			AND ${params.} LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+<!-- 		<if test="params.pramId != null and !params.pramId.equals('')"> -->
+<!-- 			AND BM_CN LIKE '%${params.word}%' -->
+<!-- 		</if> -->
+		<choose>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('sj') ">
+				AND BM_SJ LIKE '%${params.word}%'
+			</when>
+			<when test="params.word != null and !params.word.equals('') and params.key.equals('cn') ">
+				AND BM_CN LIKE '%${params.word}%'
+			</when>
+		</choose>	
+		ORDER BY B.REGIST_DE DESC
+	${pagingEnd}
+	</select>
+	<select id="actvityFixingView" parameterType="String" resultType="com.dasa.communication.vo.NoticeVo" >
+		SELECT BM_INNB
+		     , BM_SJ
+		     , BM_CN
+			 , E.EM_NM REGIST_MAN
+       		 , date_format(B.REGIST_DE,'Y%-m%-d%') REGIST_DE       
+       		 , B.ATCHMNFL_INNB AM_NO
+		  FROM TB_BBS_MANAGE B
+       	  LEFT OUTER JOIN  TB_EMPL_MANAGE E
+      		ON B.REGIST_MAN = E.EM_NO
+      	 WHERE BM_INNB = #{bmInnb} 
+	</select>
+	<select id="martAutoComplate" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+		SELECT OM_CODE AS KEY
+			 , OM_NM AS VALUE
+		FROM TB_ORGNZT_MANAGE												
+		WHERE CASE WHEN OM_NM &lt; 'ㄱ' THEN UPPER(SUBSTR(OM_NM, 1, 1)) 
+		            WHEN ASCII('ㄱ') &lt;= ASCII(OM_NM) AND				
+		                 ASCII(OM_NM) &lt;= ASCII('ㅎ') THEN OM_NM		
+		            WHEN OM_NM &lt; '나' then 'ㄱ'							
+		            WHEN OM_NM &lt; '다' then 'ㄴ'							
+		            WHEN OM_NM &lt; '라' then 'ㄷ'							
+		            WHEN OM_NM &lt; '마' then 'ㄹ'							
+		            WHEN OM_NM &lt; '바' then 'ㅁ'							
+		            WHEN OM_NM &lt; '사' then 'ㅂ'							
+		            WHEN OM_NM &lt; '아' then 'ㅅ'							
+		            WHEN OM_NM &lt; '자' then 'ㅇ'							
+		            WHEN OM_NM &lt; '차' then 'ㅈ'							
+		            WHEN OM_NM &lt; '카' then 'ㅊ'							
+		            WHEN OM_NM &lt; '타' then 'ㅋ'							
+		            WHEN OM_NM &lt; '파' then 'ㅌ'							
+		            WHEN OM_NM &lt; '하' then 'ㅍ'							
+		            ELSE 'ㅎ' 											
+		       END = UPPER(#{keyword}) 											
+		OR( OM_NM LIKE '%'||#{keyword}||'%')
+		AND DELETE_AT = 'N'
+		AND OM_ORGNZT_SE = 2
+	</select>
+	<select id="actvityFixingNextVal" resultType="String" >
+		SELECT BM_INNB_SEQ.NEXTVAL FROM DUAL
+	</select>
+	<insert id="actvityFixingInsert" parameterType="com.dasa.communication.vo.NoticeVo">
+		INSERT INTO 
+		TB_BBS_MANAGE (
+		  BM_INNB
+		, BM_CODE
+		, BM_ALL_NTCAT
+		, BM_UPEND_AT
+		, BM_SJ
+		, BM_CN
+		, BM_REGIST_IP
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		  #{bm_innb}
+		, #{bm_code}
+		, #{bm_all_ntcat, jdbcType=VARCHAR}
+		, #{bm_upend_at, jdbcType=VARCHAR}
+		, #{bm_sj}
+		, #{bm_cn}
+		, #{bm_regist_ip, jdbcType=VARCHAR}		
+		, 'N'
+		, #{regist_man}
+		, NOW()
+		, #{regist_man}
+		, NOW()
+		)
+	</insert>
+	<update id="actvityFixingUpdate" parameterType="com.dasa.communication.vo.NoticeVo">
+		UPDATE TB_BBS_MANAGE
+		  SET BM_ALL_NTCAT = #{bm_all_ntcat,jdbcType=VARCHAR} 
+			, BM_UPEND_AT  = #{bm_upend_at,jdbcType=VARCHAR}  
+			, BM_SJ        = #{bm_sj}        
+			, BM_CN        = #{bm_cn}        
+			, UPDT_MAN     = #{regist_man,jdbcType=VARCHAR}   
+			, UPDT_DE      = NOW()   
+		WHERE BM_INNB = #{bm_innb}		      
+	</update>
+	<insert id="actvityFixingOmInsert" parameterType="map">
+		INSERT INTO 
+		TB_CMMNC_BHF (
+		  OM_CODE
+		, CMMNC_SE
+		, CM_INNB
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		  #{om_code}
+		, #{cmmnc_se}
+		, #{cm_innb}
+		, 'N'
+		, #{regist_man}
+		, NOW()
+		, #{regist_man}
+		, NOW()
+		)
+	</insert>
+	<insert id="actvityFixingSmInsert" parameterType="map">
+		INSERT INTO 
+		TB_CMMNC_STR (
+		  SM_CODE
+		, CMMNC_SE
+		, CM_INNB
+		, DELETE_AT
+		, REGIST_MAN
+		, REGIST_DE
+		, UPDT_MAN
+		, UPDT_DE
+		)
+		VALUES (
+		  #{sm_code}
+		, #{cmmnc_se}
+		, #{cm_innb}
+		, 'N'
+		, #{regist_man}
+		, NOW()
+		, #{regist_man}
+		, NOW()
+		)
+	</insert>
+	
+	<delete id="actvityFixingOmDelete" parameterType="map" >
+	 DELETE 
+	   FROM TB_CMMNC_BHF
+	  WHERE CMMNC_SE = #{cmmnc_se}
+	    AND CM_INNB = #{cm_innb}
+	</delete>
+	<delete id="actvityFixingSmDelete" parameterType="map" >
+	 DELETE 
+	   FROM TB_CMMNC_STR
+	  WHERE CMMNC_SE = #{cmmnc_se}
+	    AND CM_INNB = #{cm_innb}
+	</delete>
+	<update id="actvityFixingAmNoUpdate" parameterType="map"  >
+		UPDATE TB_BBS_MANAGE
+		   SET ATCHMNFL_INNB = #{am_no}		   	 
+		WHERE BM_INNB = #{bm_innb}
+	</update>
+	<select id="actvityFixingOmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+		SELECT C.OM_CODE AS KEY
+			 , O.OM_NM AS VALUE
+		  FROM TB_CMMNC_BHF C
+     	  LEFT OUTER JOIN TB_ORGNZT_MANAGE O
+       		ON C.OM_CODE = O.OM_CODE
+		 WHERE CM_INNB = #{cm_innb}
+		   AND C.DELETE_AT = 'N'
+	</select>
+	<select id="actvityFixingSmList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+		SELECT C.SM_CODE AS KEY
+			 , O.OM_NM AS VALUE
+		  FROM TB_CMMNC_STR C
+     	  LEFT OUTER JOIN TB_ORGNZT_MANAGE O
+       		ON C.SM_CODE = O.OM_CODE
+		 WHERE CM_INNB = #{cm_innb}
+		   AND C.DELETE_AT = 'N'
+	</select>
+	
+</mapper>

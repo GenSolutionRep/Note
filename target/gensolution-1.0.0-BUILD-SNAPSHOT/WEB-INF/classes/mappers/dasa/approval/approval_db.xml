@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="approval">
+    <select id="selectApprovalListCount" parameterType="com.vertexid.vo.NaviVo" resultType="integer">
+           SELECT COUNT(*)
+             FROM tb_approval_mst A, tb_approval_dtl B, tb_orgnzt_manage C, tb_empl_manage D,
+                  tb_code E, tb_code F
+            WHERE A.AM_CODE = B.AM_CODE
+              AND A.OM_CODE = C.OM_CODE
+              AND A.EM_NO = D.EM_NO
+              AND A.AM_STATUS = E.C_CODE
+              AND B.AD_TYPE = F.C_CODE
+              AND A.DELETE_AT='N'
+        <choose>
+          <when test="params.flag eq 'A'.toString()">
+              AND (B.AD_DATE_FROM  BETWEEN #{params.ad_date_from} AND #{params.ad_date_to}
+                  OR B.AD_DATE_TO BETWEEN #{params.ad_date_from}  AND #{params.ad_date_to}) 
+          </when>
+          <when test="params.flag eq 'B'.toString()">
+              AND A.AM_APPROVAL_DATE BETWEEN #{params.ad_date_from} and #{params.ad_date_to}
+          </when>
+        </choose>
+        <if test="cm_code != null and !cm_code.equals('')">
+              AND C.CM_CODE =#{cm_code}
+        </if>
+        <if test="params.om_code != null and !params.om_code.equals('')">
+              AND A.OM_CODE =#{params.om_code}
+        </if>
+        <if test="params.em_no != null and !params.em_no.equals('') and params.auth_flag != 1 and params.auth_flag != 0">
+              AND D.EM_NO = #{params.em_no}
+        </if>
+        <if test="params.em_nm != null and !params.em_nm.equals('')">
+              AND D.EM_NM LIKE '%${params.em_nm}%'
+        </if>
+        <if test="params.am_approver_em_no != null and !params.am_approver_em_no.equals('') and params.auth_flag != 1 and params.auth_flag != 0">
+              AND A.AM_APPROVER_EM_NO = #{params.am_approver_em_no}
+        </if>
+        <if test="params.am_status != null and !params.am_status.equals('')">
+              AND A.AM_STATUS = #{params.am_status}
+        </if>
+            ORDER BY A.AM_APPROVAL_DATE DESC , A.AM_CODE DESC
+    </select>
+
+    <select id="selectApprovalList" resultType="com.dasa.approval.vo.ApprovalVo" parameterType="com.vertexid.vo.NaviVo">
+        ${pagingStart}
+           SELECT A.AM_CODE
+                , A.OM_CODE
+                , C.OM_NM
+                , A.EM_NO
+                , D.EM_NM
+                , A.AM_APPROVER_EM_NO
+                , A.AM_STATUS
+                , E.C_NAME AS AM_STATUS_NM
+                , B.AD_TYPE
+                , F.C_NAME AS AD_TYPE_NM
+                , DATE_FORMAT(A.AM_APPROVAL_DATE, '%Y-%m-%d') AS AM_APPROVAL_DATE
+                , DATE_FORMAT(A.UPDT_DE, '%Y-%m-%d') AS UPDT_DE
+                , A.DELETE_AT
+                , (
+                   SELECT COUNT(I.AI_NO)
+                     FROM tb_attach_main M , tb_attach_item I
+                    WHERE M.AM_NO = I.AM_NO
+                      AND M.DELETE_AT = 'N'
+                      AND M.AM_NO = B.AM_NO
+                  ) AS ATTACH_CNT
+                , DATE_FORMAT(B.AD_DATE_FROM, '%Y-%m-%d') AS AD_DATE_FROM
+                , B.AD_DATE_FROM_HHMM
+                , DATE_FORMAT(B.AD_DATE_TO, '%Y-%m-%d') AS AD_DATE_TO
+                , B.AD_DATE_TO_HHMM
+                , CASE WHEN A.AM_STATUS = '0000000065'
+                       THEN (
+                             SELECT DATE_FORMAT(U.UPDT_DE, '%Y-%m-%d')
+                               FROM tb_approval_reject U
+                              WHERE U.AR_SEQ = (
+                                                SELECT MAX(T.AR_SEQ)
+                                                  FROM tb_approval_reject T
+                                                 WHERE T.AM_CODE = A.AM_CODE
+                                                )
+                            )
+                       ELSE ''
+                  END AS REJECT_DATE
+             FROM tb_approval_mst A, tb_approval_dtl B, tb_orgnzt_manage C, tb_empl_manage D,
+                  tb_code E, tb_code F
+            WHERE A.AM_CODE = B.AM_CODE
+              AND A.OM_CODE = C.OM_CODE
+              AND A.EM_NO = D.EM_NO
+              AND A.AM_STATUS = E.C_CODE
+              AND B.AD_TYPE = F.C_CODE
+              AND A.DELETE_AT='N'
+        <choose>
+          <when test="params.flag eq 'A'.toString()">
+             AND (B.AD_DATE_FROM  BETWEEN #{params.ad_date_from} AND #{params.ad_date_to}
+                  OR B.AD_DATE_TO BETWEEN #{params.ad_date_from}  AND #{params.ad_date_to}) 
+              
+          </when>
+          <when test="params.flag eq 'B'.toString()">
+              AND A.AM_APPROVAL_DATE BETWEEN #{params.ad_date_from} and #{params.ad_date_to}
+          </when>
+        </choose>
+        <if test="cm_code != null and !cm_code.equals('')">
+              AND C.CM_CODE =#{cm_code}
+        </if>
+        <if test="params.om_code != null and !params.om_code.equals('')">
+              AND A.OM_CODE =#{params.om_code}
+        </if>
+        <if test="params.em_no != null and !params.em_no.equals('') and params.auth_flag != 1 and params.auth_flag != 0">
+              AND D.EM_NO = #{params.em_no}
+        </if>
+        <if test="params.em_nm != null and !params.em_nm.equals('')">
+              AND D.EM_NM LIKE '%${params.em_nm}%'
+        </if>
+        <if test="params.am_approver_em_no != null and !params.am_approver_em_no.equals('') and params.auth_flag != 1 and params.auth_flag != 0">
+              AND A.AM_APPROVER_EM_NO = #{params.am_approver_em_no}
+        </if>
+        <if test="params.am_status != null and !params.am_status.equals('')">
+              AND A.AM_STATUS = #{params.am_status}
+        </if>
+            ORDER BY A.AM_APPROVAL_DATE DESC , A.AM_CODE DESC
+        ${pagingEnd}
+    </select>
+
+
+    <select id="selectRejectList" resultType="com.dasa.approval.vo.ApprovalVo" parameterType="string">
+            SELECT  AM_CODE
+                    ,AR_REASON
+                    ,DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s') AS UPDT_DE
+            FROM tb_approval_reject
+            WHERE AM_CODE = #{am_code}
+            ORDER BY AR_SEQ DESC
+    </select>
+
+    <select id="selectApprovalRow" parameterType="com.dasa.approval.vo.ApprovalVo" resultType="com.dasa.approval.vo.ApprovalVo" >
+        SELECT  A.AM_CODE
+               ,C.OM_CODE
+               ,C.OM_NM
+               ,A.EM_NO
+               ,D.EM_NM
+               ,A.AM_APPROVER_EM_NO
+               ,H.EM_NM AS AM_APPROVER_EM_NM
+               ,A.AM_STATUS
+               ,E.C_NAME AS AM_STATUS_NM
+               ,DATE_FORMAT(A.AM_APPROVAL_DATE, '%Y-%m-%d') AS AM_APPROVAL_DATE
+               ,A.DELETE_AT
+               ,D.EM_DTY_CODE
+               ,F.C_NAME AS EM_DTY_NM
+               ,DATE_FORMAT(A.UPDT_DE, '%Y-%m-%d') AS UPDT_DE
+               ,B.AD_TYPE
+               ,G.C_NAME AS AD_TYPE_NM
+               ,B.AD_REASON
+               ,DATE_FORMAT(B.AD_DATE_FROM, '%Y-%m-%d') AS AD_DATE_FROM
+               ,B.AD_DATE_FROM_HHMM
+               ,DATE_FORMAT(B.AD_DATE_TO, '%Y-%m-%d') AS AD_DATE_TO
+               ,B.AD_DATE_TO_HHMM
+               ,B.AM_NO
+               ,CASE WHEN A.AM_STATUS = '0000000065'
+                     THEN (
+                           SELECT U.AR_REASON
+                             FROM tb_approval_reject U
+                            WHERE U.AR_SEQ = (
+                                              SELECT MAX(T.AR_SEQ)
+                                                FROM tb_approval_reject T
+                                               WHERE T.AM_CODE = A.AM_CODE
+                                              )
+                          )
+                     ELSE ''
+                END AS AR_REASON
+               ,CASE WHEN A.AM_STATUS = '0000000065'
+                     THEN (
+                           SELECT DATE_FORMAT(U.UPDT_DE, '%Y-%m-%d')
+                             FROM tb_approval_reject U
+                            WHERE U.AR_SEQ = (
+                                              SELECT MAX(T.AR_SEQ)
+                                                FROM tb_approval_reject T
+                                               WHERE T.AM_CODE = A.AM_CODE
+                                              )
+                          )
+                     ELSE ''
+                END AS REJECT_DATE
+                ,(CASE WHEN D.EM_DTY_CODE = '0000000006' THEN
+	            	(SELECT SM.SM_NM FROM TB_STR_MANAGE SM, TB_STR_EMPL SE
+		              WHERE SM.SM_CODE = SE.SM_CODE AND SE.DELETE_AT = 'N'
+					    AND SE.EM_NO = D.EM_NO LIMIT 1
+		             ) 
+		         	ELSE '' END ) AS STR_NM
+           FROM tb_approval_mst A, tb_approval_dtl B, tb_orgnzt_manage C, tb_empl_manage D, tb_empl_manage H,
+             tb_code E, tb_code F, tb_code G
+           WHERE A.AM_CODE = B.AM_CODE
+             AND A.OM_CODE = C.OM_CODE
+             AND A.EM_NO = D.EM_NO
+             AND A.AM_APPROVER_EM_NO = H.EM_NO
+             AND A.AM_STATUS = E.C_CODE
+             AND D.EM_DTY_CODE = F.C_CODE
+             AND B.AD_TYPE = G.C_CODE
+           AND A.DELETE_AT='N'
+           AND A.AM_CODE = #{am_code}
+    </select>
+
+    <update id="SP_SAVE_30100" statementType="CALLABLE" parameterType="com.dasa.approval.vo.ApprovalVo">
+        {call SP_SAVE_30100(
+              #{flag                 , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{am_code            , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{om_code            , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{em_no              , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{am_approver_em_no  , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{am_approval_date   , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{am_status          , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ad_seq             , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ad_type            , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ad_date_from       , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ad_date_from_hhmm  , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ad_date_to         , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ad_date_to_hhmm    , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ad_reason          , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{am_no              , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ar_seq             , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ar_em_no           , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{ar_reason          , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{regist_man         , mode=IN, jdbcType=VARCHAR, javaType=string}
+              , #{delete_at          , mode=IN, jdbcType=VARCHAR, javaType=string}
+
+              , #{res_am_code        , mode=OUT, jdbcType=VARCHAR, javaType=string}
+              , #{res_code           , mode=OUT, jdbcType=VARCHAR, javaType=string}
+              , #{res_msg            , mode=OUT, jdbcType=VARCHAR, javaType=string}
+        )}
+    </update>
+    <update id="amNoUpdate" parameterType="com.dasa.approval.vo.ApprovalVo"  >
+        UPDATE tb_approval_dtl
+           SET AM_NO = #{am_no}
+        WHERE AM_CODE = #{am_code}
+    </update>
+
+	<select id="selectPushList" parameterType="com.dasa.approval.vo.ApprovalVo" resultType="com.dasa.approval.vo.ApprovalVo" >
+		SELECT B.EM_NM AS AM_APPROVER_EM_NM,
+				A.AM_APPROVER_EM_NO,    
+				C.EM_NM,
+				A.EM_NO,   
+				B.EM_PUSH_ID, 
+				B.EM_DEVICE_TYPE
+		FROM TB_APPROVAL_MST A, TB_EMPL_MANAGE B, TB_EMPL_MANAGE C
+		WHERE A.AM_APPROVER_EM_NO = B.EM_NO
+		AND A.EM_NO = C.EM_NO
+		AND B.EM_DEVICE_TYPE IS NOT NULL AND B.EM_PUSH_ID IS NOT NULL
+		AND AM_CODE = IF( #{am_code} IS NULL OR #{am_code} ='', #{res_am_code}, #{am_code})
+		limit 1
+	</select>
+	
+	<select id="dupCheckCount" parameterType="com.dasa.approval.vo.ApprovalVo" resultType="integer" >
+		 SELECT IFNULL(COUNT(*),0)
+          FROM TB_APPROVAL_MST A, TB_APPROVAL_DTL B
+          WHERE A.am_code = B.am_code
+           AND A.em_no = #{em_no}
+           AND (AD_DATE_FROM  BETWEEN #{ad_date_from} AND #{ad_date_to}
+                 OR AD_DATE_TO BETWEEN #{ad_date_from}  AND #{ad_date_to}) 
+           AND A.am_status ='0000000064'
+	</select>
+</mapper>

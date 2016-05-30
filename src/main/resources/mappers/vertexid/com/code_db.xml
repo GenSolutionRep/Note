@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CodeService">	
+<select id="getSQL_codeTree" resultType="string" parameterType="Map" >
+	    select fn_get_code_list
+			  ('', 
+			  'A'
+			  )
+	</select>
+	
+	<select id="codeTree" resultType="com.vertexid.vo.CodeVo" parameterType="Map" >
+		SELECT c_code
+			 , c_name
+			 , c_desc
+			 , c_parent_code
+			 , c_is_system_code
+			 , c_is_use
+			 , c_order
+			 , (SELECT COUNT(*)
+				  FROM tb_code
+				 WHERE c_parent_code = A.c_code
+				   AND c_is_del = 'N'
+			 ) AS child_cnt
+			 , IF(A.c_parent_code is null or A.c_parent_code = '' ,'1','2') depth
+  		  FROM tb_code A
+  		 WHERE c_is_del = 'N'
+  		 <if test='c_code != null and !c_code.equals("")'>
+		   AND c_code = #{c_code}
+  		 </if>
+		 ORDER BY c_parent_code , c_order
+	</select>
+	
+	<select id="codeList" resultType="com.vertexid.vo.CodeVo" parameterType="Map" >
+		SELECT c_code
+			 , c_name
+			 , c_desc
+			 , c_parent_code
+			 , c_is_system_code
+			 , c_is_use
+			 , c_order
+			 , c_ext1
+			 , c_ext2
+			 , c_ext3
+			 , (SELECT COUNT(*)
+				  FROM tb_code
+				 WHERE c_parent_code = A.c_code
+				   AND c_is_del = 'N'
+			 ) AS child_cnt
+			 , 1 c_depth
+  		  FROM tb_code A
+  		 WHERE c_is_del = 'N'
+  		<choose>
+			<when test='c_code == null or c_code.equals("")'>
+				AND ( c_parent_code is null  or A.c_parent_code = '')
+			</when>
+			<otherwise>
+				AND c_code = #{c_code}
+			</otherwise>
+		</choose>
+		UNION ALL
+		SELECT c_code
+			 , c_name
+			 , c_desc
+			 , c_parent_code
+			 , c_is_system_code
+			 , c_is_use
+			 , c_order
+			 , c_ext1
+			 , c_ext2
+			 , c_ext3
+			 , (SELECT COUNT(*)
+				  FROM tb_code
+				 WHERE c_parent_code = A.c_code
+				   AND c_is_del = 'N'
+			 ) AS child_cnt
+			 , 2 c_depth
+  		  FROM tb_code A
+  		 WHERE c_is_del = 'N'
+		<choose>
+			<when test='c_code == null or c_code.equals("")'>
+			AND c_code is null
+			</when>
+			<otherwise>
+			AND c_parent_code = #{c_code}
+			</otherwise>
+		</choose>
+		ORDER BY c_depth,  c_order, c_code
+	</select>
+	
+	
+	<update id="codeDelete" parameterType="com.vertexid.vo.CodeVo">
+		UPDATE tb_code
+		SET c_is_del = 'Y'
+			, c_up_date = DATE_FORMAT(NOW(), '%Y%m%d%H%i%s')
+			, c_up_id = #{c_up_id}
+		WHERE c_code = #{c_code}
+	</update>
+	
+	<select id="codeView" resultType="com.vertexid.vo.CodeVo" parameterType="Map" >
+		SELECT A.c_code
+			 , A.c_name
+			 , A.c_desc
+			 , A.c_parent_code
+			 , A.c_is_system_code
+			 , A.c_is_use
+			 , A.c_order
+			 , A.c_ext1
+			 , A.c_ext2
+			 , A.c_ext3
+			 , (SELECT COUNT(*)
+				  FROM tb_code
+				  WHERE c_parent_code = A.c_code
+				   AND c_is_del = 'N'
+			 ) AS child_cnt	
+			 , IFNULL(B.c_name ,'최상위코드') AS c_parent_code_name	 
+  		  FROM tb_code A
+  		  			left outer join tb_code B on A.c_parent_code = B.c_code				 
+  	 	 WHERE A.c_is_del = 'N'
+		   AND A.c_code = #{c_code}
+	</select>
+	<select id="codeView33333" resultType="com.vertexid.vo.CodeVo" parameterType="Map" >
+		SELECT c_code
+			 , c_name
+			 , c_desc
+			 , c_parent_code
+			 , c_is_system_code
+			 , c_is_use
+			 , c_order
+			 , c_ext1
+			 , c_ext2
+			 , c_ext3
+			 , (SELECT COUNT(*)
+				  FROM tb_code
+				  WHERE c_parent_code = A.c_code
+				   AND c_is_del = 'N'
+			 ) AS child_cnt	
+			 , IFNULL((SELECT c_name
+				  FROM tb_code
+				  WHERE c_code = A.c_parent_code
+				   AND c_is_del = 'N'
+			 ) ,'최상위코드')AS c_parent_code_name	
+  		  FROM tb_code A
+  	 	 WHERE c_is_del = 'N'
+		   AND c_code = #{c_code}
+	</select>
+	
+	<insert id="codeSave" parameterType="com.vertexid.vo.CodeVo"  useGeneratedKeys="true" >
+	
+		<selectKey resultType="String"  keyProperty="c_code_new"  order="BEFORE">
+  				SELECT RIGHT(CONCAT('000000000', IFNULL(MAX(CAST(C_CODE AS SIGNED)),1)+1), 10) AS c_code_new from tb_code 
+  	 	</selectKey>
+	
+		INSERT INTO tb_code
+		(
+	        c_code
+	        , c_name
+	        , c_desc
+	        , c_parent_code
+	        , c_is_system_code
+	        , c_is_use
+	        , c_order
+	        , c_ext1
+	        , c_ext2
+	        , c_ext3
+	        , c_in_date
+	        , c_up_date
+	        , c_in_id
+	        , c_up_id
+	      )
+	      VALUES (
+	      <choose>
+	      	<when test="!c_code.equals('') ">
+	          #{c_code}
+	      	</when>
+	      	<otherwise>
+	          #{c_code_new}
+	      	</otherwise>
+	      </choose>
+	        , #{c_name}
+	        , #{c_desc}
+	        , #{c_parent_code}
+	        , #{c_is_system_code}
+	        , #{c_is_use}
+	        <choose>
+		      	<when test="c_order == '' ">
+		        , null
+		      	</when>
+		      	<otherwise>
+		        , #{c_order}
+		      	</otherwise>
+		      </choose>
+	        , #{c_ext1}
+	        , #{c_ext2}
+	        , #{c_ext3}
+	        , DATE_FORMAT(NOW(), '%Y%m%d%H%i%s')
+	        , DATE_FORMAT(NOW(), '%Y%m%d%H%i%s')
+	        , #{c_in_id}
+	        , #{c_up_id}
+	      )
+		ON DUPLICATE KEY
+			UPDATE
+		      c_name = #{c_name}
+		      , c_desc = #{c_desc}
+		      , c_is_system_code = #{c_is_system_code}
+		      , c_order = #{c_order}
+		      , c_ext1 = #{c_ext1}
+		      , c_ext2 = #{c_ext2}
+		      , c_ext3 = #{c_ext3}
+		      , c_is_use = #{c_is_use}
+		      , c_in_date = NOW()
+		      , c_up_id = #{c_up_id}    
+	</insert>
+	
+	
+	<select id='codeComboBox' resultType="com.vertexid.vo.CodeVo" parameterType="Map">
+		SELECT C_CODE,
+		       C_NAME,
+		       c_ext1,
+		       c_ext2,
+		       c_ext3
+		  FROM tb_code
+		 WHERE C_IS_DEL = 'N'
+		   AND C_IS_USE = 'Y'
+		   AND C_PARENT_CODE = #{c_parent_code}
+		 ORDER BY C_ORDER ASC
+	</select>
+	
+	<select id='codeForCal' resultType="com.vertexid.vo.CodeVo" parameterType="Map">
+		SELECT C_CODE,
+		       C_NAME,
+		       c_ext1,
+		       c_ext2,
+		       c_ext3
+		  FROM tb_code
+		 WHERE C_IS_DEL = 'N'
+		   AND C_PARENT_CODE = #{c_parent_code}
+		   AND SUBSTRING(c_ext1, 1, 2) = #{c_ext1}
+		 ORDER BY C_ORDER ASC
+	</select>
+</mapper>

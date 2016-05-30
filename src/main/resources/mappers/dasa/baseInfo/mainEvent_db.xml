@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="event">
+    <select id="selectList" parameterType="Map" resultType="com.dasa.communication.vo.MainEventVo" >
+        SELECT
+                a.me_innb
+                ,me_sj
+                ,me_sj_color
+                ,schdul_bgnde
+                ,schdul_endde
+                ,me_cn
+                ,h.em_dty_code
+        FROM tb_main_event a
+             left outer join tb_main_event_target b
+                on a.me_innb = b.me_innb  and a.delete_at = 'N'
+             left outer join tb_str_manage c
+                on b.sm_code = c.sm_code and c.delete_at = 'N'
+             left outer join tb_empl_manage h
+    			on a.regist_man = h.em_no
+        where 1=1
+        and a.delete_at = 'N'
+        and (
+             schdul_bgnde  between concat(#{yearMm}, '010000') and concat(#{yearMm}, '310000')
+             or
+             schdul_endde  between concat(#{yearMm}, '010000') and concat(#{yearMm}, '310000')
+            )
+        and ((b.om_code =#{om_code} or c.om_code = #{om_code} or (b.om_code is null and b.sm_code is null) ) OR (me_holiday_at='Y'))
+        <!--모바일 인터페이스 사용조건문 시작-->
+            <choose>
+                <when test="auth_flag != null and !auth_flag.equals('') and em_no != null and !em_no.equals('') and auth_flag == 2">
+                <!--팀장인 경우-->
+                <![CDATA[
+                and (
+                     /*지점*/
+                     b.om_code in (select t.bhf_code
+                                     from tb_empl_manage t
+                                    where t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and t.em_no = #{em_no})
+                     or
+                     /*매장*/
+                     b.sm_code in (select u.sm_code
+                                     from tb_empl_manage t,
+                                          tb_str_manage u
+                                    where t.bhf_code = u.om_code
+                                      and t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and u.use_at = 'Y'
+                                      and u.delete_at = 'N'
+                                      and t.em_no = #{em_no}
+                ]]>
+                                   )
+                      or me_holiday_at='Y'
+                    )
+                </when>
+                <when test="auth_flag != null and !auth_flag.equals('') and em_no != null and !em_no.equals('') and auth_flag > 2">
+                <!--여사원인 경우-->
+                <![CDATA[
+                and (
+                     /*지점*/
+                     b.om_code in (select t.bhf_code
+                                     from tb_empl_manage t
+                                    where t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and t.em_no = #{em_no})
+                     or
+                     /*매장*/
+                     b.sm_code in (select u.sm_code
+                                     from tb_empl_manage t,
+                                          tb_str_empl u
+                                    where t.em_no = u.em_no
+                                      and t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and u.delete_at = 'N'
+                                      and t.em_no = #{em_no}
+                ]]>
+                                  )
+                      or me_holiday_at='Y'
+                    )
+                </when>
+            </choose>
+            <!--모바일 인터페이스 사용조건문 끝-->
+        group by a.me_innb
+        order by me_holiday_at desc, me_innb
+    </select>
+    <select id="selectRow" parameterType="string" resultType="com.dasa.communication.vo.MainEventVo" >
+        SELECT  a.me_innb
+                ,a.bm_code
+                ,a.me_all_at
+                ,a.me_sj
+                ,a.me_sj_color
+                ,a.schdul_bgnde
+                ,a.schdul_endde
+                ,ifnull(a.me_allday_at, 'N') AS me_allday_at
+                ,ifnull(a.me_ntcn_at, 'N') AS me_ntcn_at
+                ,a.me_cn
+                ,a.atchmnfl_innb
+                ,a.delete_at
+                ,a.regist_man
+                ,a.regist_de
+                ,a.updt_man
+                ,date_format(a.updt_de,'%Y%m%d%H%i') as updt_de
+                ,b.em_nm as updt_man_name
+                ,a.me_holiday_at
+                ,b.em_dty_code
+        FROM tb_main_event a
+            left outer join tb_empl_manage b on a.updt_man = b.em_no
+        where me_innb = #{me_innb}
+        group by a.me_innb
+    </select>
+
+    <select id="selectScheduleList" parameterType="com.dasa.communication.vo.MainEventVo" resultType="com.dasa.communication.vo.MainEventVo" >
+      <if test="kind != null and !kind.equals('') and kind.equals('LIST')">
+      select bbb.t_days, count(bbb.t_days) cnt from (
+      </if>
+      <if test="kind != null and !kind.equals('') and kind.equals('VIEW') and t_days != null and !t_days.equals('')">
+      select bbb.* from (
+      </if>
+      <if test="kind != null and !kind.equals('') and kind.equals('MAIN') and t_days != null and !t_days.equals('')">
+      select bbb.* from (
+      </if>
+       select aaa.*
+        from
+        (select a.me_sj,
+              me_sj_color,
+              me_allday_at,
+              me_cn,
+              DATE_FORMAT(t_days, '%Y-%m-%d') t_days,
+              (case
+                   when DAYOFWEEK(DATE_FORMAT(t_days, '%y%m%d'))=2 then '(월)'
+                   when DAYOFWEEK(DATE_FORMAT(t_days, '%y%m%d'))=3 then '(화)'
+                   when DAYOFWEEK(DATE_FORMAT(t_days, '%y%m%d'))=4 then '(수)'
+                   when DAYOFWEEK(DATE_FORMAT(t_days, '%y%m%d'))=5 then '(목)'
+                   when DAYOFWEEK(DATE_FORMAT(t_days, '%y%m%d'))=6 then '(금)'
+                   when DAYOFWEEK(DATE_FORMAT(t_days, '%y%m%d'))=7 then '(토)'
+              else '(일)'
+              end) as week_text,
+              schdul_bgnde,
+              schdul_endde,
+              concat(substring(schdul_bgnde,9,2), ':', substring(schdul_bgnde,11,2)) as schdul_bgnde_hhmm,
+              concat(substring(schdul_endde,9,2), ':', substring(schdul_endde,11,2)) as schdul_endde_hhmm
+        from  tb_main_event a
+              left outer join tb_main_event_target b  on a.me_innb = b.me_innb
+              left outer join tb_str_manage c on b.sm_code = c.sm_code and c.delete_at = 'N'
+              left outer join
+                 (   select  concat(#{yyyyMm},'01') AS "t_days"
+                    union all select  concat(#{yyyyMm},'02')
+                    union all select  concat(#{yyyyMm},'03')
+                    union all select  concat(#{yyyyMm},'04')
+                    union all select  concat(#{yyyyMm},'05')
+                    union all select  concat(#{yyyyMm},'06')
+                    union all select  concat(#{yyyyMm},'07')
+                    union all select  concat(#{yyyyMm},'08')
+                    union all select  concat(#{yyyyMm},'09')
+                    union all select  concat(#{yyyyMm},'10')
+                    union all select  concat(#{yyyyMm},'11')
+                    union all select  concat(#{yyyyMm},'12')
+                    union all select  concat(#{yyyyMm},'13')
+                    union all select  concat(#{yyyyMm},'14')
+                    union all select  concat(#{yyyyMm},'15')
+                    union all select  concat(#{yyyyMm},'16')
+                    union all select  concat(#{yyyyMm},'17')
+                    union all select  concat(#{yyyyMm},'18')
+                    union all select  concat(#{yyyyMm},'19')
+                    union all select  concat(#{yyyyMm},'20')
+                    union all select  concat(#{yyyyMm},'21')
+                    union all select  concat(#{yyyyMm},'22')
+                    union all select  concat(#{yyyyMm},'23')
+                    union all select  concat(#{yyyyMm},'24')
+                    union all select  concat(#{yyyyMm},'25')
+                    union all select  concat(#{yyyyMm},'26')
+                    union all select  concat(#{yyyyMm},'27')
+                    union all select  concat(#{yyyyMm},'28')
+                    union all select  concat(#{yyyyMm},'29')
+                    union all select  concat(#{yyyyMm},'30')
+                    union all select  concat(#{yyyyMm},'31')
+                 ) d  on (d.t_days between substring(schdul_bgnde,1,8) and substring(schdul_endde,1,8)) and a.delete_at='N'
+              where 1=1
+               and (
+                     (b.om_code = #{om_code} or c.om_code = #{om_code} or (b.om_code is null and b.sm_code is null))
+                     or
+                     (a.me_holiday_at='Y')
+                   )
+
+            <!--모바일 인터페이스 사용조건문 시작-->
+            <choose>
+                <when test="auth_flag != null and !auth_flag.equals('') and em_no != null and !em_no.equals('') and auth_flag == 2">
+                <!--팀장인 경우-->
+                <![CDATA[
+                and (
+                     /*지점*/
+                     b.om_code in (select t.bhf_code
+                                     from tb_empl_manage t
+                                    where t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and t.em_no = #{em_no})
+                     or
+                     /*매장*/
+                     b.sm_code in (select u.sm_code
+                                     from tb_empl_manage t,
+                                          tb_str_manage u
+                                    where t.bhf_code = u.om_code
+                                      and t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and u.use_at = 'Y'
+                                      and u.delete_at = 'N'
+                                      and t.em_no = #{em_no}
+                ]]>
+                <if test="sm_nm != null and !sm_nm.equals('') ">
+                                      and u.sm_nm like '%${sm_nm}%'
+                </if>
+                                   )
+                    or a.me_holiday_at='Y'                                 
+                    )
+                </when>
+                <when test="auth_flag != null and !auth_flag.equals('') and em_no != null and !em_no.equals('') and auth_flag > 2">
+                <!--여사원인 경우-->
+                <![CDATA[
+                and (
+                     /*지점*/
+                     b.om_code in (select t.bhf_code
+                                     from tb_empl_manage t
+                                    where t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and t.em_no = #{em_no})
+                     or
+                     /*매장*/
+                     b.sm_code in (select u.sm_code
+                                     from tb_empl_manage t,
+                                          tb_str_empl u
+                                    where t.em_no = u.em_no
+                                      and t.em_no != 'superuser'
+                                      and t.use_at = 'Y'
+                                      and t.delete_at = 'N'
+                                      and u.delete_at = 'N'
+                                      and t.em_no = #{em_no}
+                ]]>
+                <if test="sm_nm != null and !sm_nm.equals('') ">
+                                      and u.sm_code in (select v.sm_code
+                                                          from tb_str_manage v
+                                                         where v.sm_nm like '%${sm_nm}%')
+                </if>
+                                  )
+                    or a.me_holiday_at='Y'                                  
+                    )
+                </when>
+            </choose>
+            <!--모바일 인터페이스 사용조건문 끝-->
+
+              group by  a.me_sj,
+                        me_sj_color,
+                        me_allday_at,
+                        me_cn,
+                        t_days,
+                        schdul_bgnde,
+                        schdul_endde
+         ) aaa
+        where t_days is not null
+        order by t_days, if(me_allday_at='Y', 0, 1), substring(schdul_bgnde,9,4)
+      <if test="kind != null and !kind.equals('') and kind.equals('LIST')">
+      ) bbb
+      group by bbb.t_days
+      order by bbb.t_days asc
+      </if>
+      <if test="kind != null and !kind.equals('') and kind.equals('VIEW') and t_days != null and !t_days.equals('')">
+      ) bbb
+      where bbb.t_days = #{t_days}
+      </if>
+      <if test="kind != null and !kind.equals('') and kind.equals('MAIN') and t_days != null and !t_days.equals('')">
+      ) bbb
+      where bbb.t_days >= #{t_days}
+      order by bbb.t_days asc limit 1
+      </if>
+    </select>
+
+    <update id="updateEvent" parameterType="hashmap">
+        UPDATE db_dasa.tb_main_event
+        SET
+              me_all_at     = #{me_all_at}
+              ,me_sj        = #{me_sj}
+              ,me_sj_color  = #{me_sj_color}
+              ,schdul_bgnde = #{schdul_bgnde}
+              ,schdul_endde = #{schdul_endde}
+              ,me_allday_at = #{me_allday_at}
+              ,me_ntcn_at   = #{me_ntcn_at}
+              ,me_cn        = #{me_cn}
+              ,delete_at    = 'N'
+              ,updt_man     = #{updt_man}
+              ,updt_de      = now()
+              ,me_holiday_at = #{me_holiday_at}
+        WHERE me_innb = #{me_innb}
+    </update>
+
+    <update id="updateEventPeriod" parameterType="com.dasa.communication.vo.MainEventVo">
+        UPDATE tb_main_event
+        SET
+              schdul_bgnde = concat(#{schdul_bgnde}, substring(schdul_bgnde,9,4))
+              ,schdul_endde = DATE_FORMAT(date_add(DATE_FORMAT(concat(#{schdul_bgnde}, concat(substring(schdul_endde,9,4),'00')), '%Y-%m-%d %H:%i:%s')
+                                            , interval  #{period} day)
+                                        , '%Y%m%d%H%i')
+              ,updt_man     = #{updt_man}
+              ,updt_de      = now()
+        WHERE me_innb = #{me_innb}
+    </update>
+
+    <select id="getPeriod" resultType="integer" parameterType="com.dasa.communication.vo.MainEventVo">
+        SELECT IFNULL(DATEDIFF(substring(schdul_endde, 1,8), substring(schdul_bgnde, 1,8)),0) as period
+        from tb_main_event
+        WHERE me_innb = #{me_innb}
+    </select>
+
+    <update id="deleteEvent" parameterType="string">
+        UPDATE tb_main_event
+        SET
+              delete_at = 'Y'
+              ,updt_man = #{updt_man}
+              ,updt_de = now()
+         WHERE me_innb = #{me_innb}
+    </update>
+
+    <insert id="insertEvent" parameterType="hashmap">
+        <selectKey resultType="String" keyProperty="me_innb"  order="BEFORE">
+            select IFNULL(MAX(CAST(me_innb AS SIGNED)),0)+1 from tb_main_event
+        </selectKey>
+
+        INSERT INTO
+            tb_main_event
+            (
+                   me_innb
+                  ,me_all_at
+                  ,me_sj
+                  ,me_sj_color
+                  ,schdul_bgnde
+                  ,schdul_endde
+                  ,me_allday_at
+                  ,me_ntcn_at
+                  ,me_cn
+                  <if test="!atchmnfl_innb.equals('')">
+                  ,atchmnfl_innb
+                  </if>
+                  ,delete_at
+                  ,regist_man
+                  ,regist_de
+                  ,updt_man
+                  ,updt_de
+                  ,me_holiday_at
+            )
+            VALUES
+            (
+                  #{me_innb}
+                  ,#{me_all_at}
+                  ,#{me_sj}
+                  ,#{me_sj_color}
+                  ,#{schdul_bgnde}
+                  ,#{schdul_endde}
+                  ,#{me_allday_at}
+                  ,#{me_ntcn_at}
+                  ,#{me_cn}
+                  <if test="!atchmnfl_innb.equals('')">
+                  ,#{atchmnfl_innb}
+                  </if>
+                  ,'N'
+                  ,#{regist_man}
+                  ,now()
+                  ,#{regist_man}
+                  ,now()
+                  ,#{me_holiday_at}
+            )
+    </insert>
+
+    <select id="selectTargetList" parameterType="com.dasa.communication.vo.MainEventVo" resultType="com.dasa.communication.vo.MainEventVo" >
+       SELECT
+             a.mt_innb
+              ,a.me_innb
+              ,a.sm_code
+              ,a.om_code
+              ,a.mt_flag
+              ,a.delete_at
+              ,a.regist_man
+              ,a.regist_de
+              ,a.updt_man
+              ,a.updt_de
+        FROM tb_main_event_target a
+                left outer join tb_orgnzt_manage b on a.om_code = b.om_code and b.delete_at = 'N'
+                left outer join tb_str_manage c on a.sm_code = b.cm_code and c.delete_at = 'N'
+        where a.delete_at = 'N'
+         and a.me_innb = #{me_innb}
+        <if test="mt_flag != null and !mt_flag.equals('')">
+            AND a.mt_flag = #{mt_flag}
+        </if>
+    </select>
+
+    <select id="omList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+        SELECT A.OM_CODE as "key",
+               B.OM_NM as "value"
+          FROM TB_MAIN_EVENT_TARGET A, TB_ORGNZT_MANAGE B
+         WHERE a.OM_CODE = B.OM_CODE
+           AND a.ME_INNB   = #{me_innb}
+           AND a.DELETE_AT = 'N'
+     GROUP BY a.OM_CODE, b.OM_NM
+    </select>
+
+    <select id="smList" resultType="com.vertexid.vo.KeyValueVo" parameterType="String" >
+        SELECT C.SM_CODE as "key",
+               S.SM_NM as "value"
+          FROM TB_MAIN_EVENT_TARGET C, TB_STR_MANAGE S
+         WHERE C.SM_CODE   = S.SM_CODE
+           AND C.ME_INNB   = #{me_innb}
+           AND C.DELETE_AT = 'N'
+      GROUP BY C.SM_CODE, S.SM_NM
+    </select>
+
+    <insert id="insertTarget" parameterType="hashmap">
+        <selectKey resultType="String" keyProperty="mt_innb"  order="BEFORE">
+            select IFNULL(MAX(CAST(mt_innb AS SIGNED)),0)+1 from tb_main_event_target
+        </selectKey>
+
+        INSERT INTO
+            tb_main_event_target
+            (
+                   mt_innb
+                  ,me_innb
+                  ,sm_code
+                  ,om_code
+                  ,mt_flag
+                  ,delete_at
+                  ,regist_man
+                  ,regist_de
+                  ,updt_man
+                  ,updt_de
+            )
+            VALUES
+            (
+                  #{mt_innb}
+                  ,#{me_innb}
+                  ,#{sm_code}
+                  ,#{om_code}
+                  ,#{mt_flag}
+                  ,'N'
+                  ,#{regist_man}
+                  ,now()
+                  ,#{regist_man}
+                  ,now()
+            )
+    </insert>
+
+    <update id="updateTarget" parameterType="hashmap">
+        UPDATE tb_main_event_target
+        SET
+              me_innb = #{me_innb}
+              ,sm_code = #{sm_code}
+              ,om_code = #{om_code}
+              ,mt_flag = #{mt_flag}
+              ,delete_at = 'N'
+              ,updt_man  = #{updt_man}
+              ,updt_de   = now()
+        WHERE mt_innb = #{mt_innb}
+    </update>
+
+    <delete id="deleteTarget" parameterType="map" >
+     DELETE
+       FROM tb_main_event_target
+      WHERE me_innb = #{me_innb}
+    </delete>
+
+    <update id="updateAmNo" parameterType="map">
+        UPDATE TB_MAIN_EVENT
+           SET ATCHMNFL_INNB = #{am_no}
+        WHERE ME_INNB = #{me_innb}
+    </update>
+
+    <select id="eventPushList" parameterType="String" resultType="com.dasa.communication.vo.MainEventVo" >          
+           SELECT
+			    a.me_sj,
+			    a.me_cn,
+			    c.em_no,
+			    c.em_nm,
+			    c.em_push_id,
+			    b.om_code,
+			    b.sm_code,
+			    c.em_device_type
+			FROM tb_main_event a,
+			     tb_main_event_target b
+			         LEFT OUTER JOIN tb_empl_manage c
+			             ON b.om_code = c.bhf_code
+			             AND c.delete_at = 'N'
+			         LEFT OUTER JOIN tb_str_empl d
+			             ON (c.bhf_code = d.om_code
+			             OR b.sm_code = d.sm_code)
+			             AND d.delete_at = 'N'
+			WHERE 1 = 1
+			AND a.me_innb = b.me_innb
+			and a.me_innb = #{me_innb}
+			AND a.delete_at = 'N'
+			AND c.delete_at = 'N'
+			AND c.em_device_type is not null
+			AND (c.em_push_id IS NOT NULL AND TRIM(em_push_id) != '')
+			group by em_push_id, em_device_type
+    </select>
+    
+    <select id="eventAllPushList" parameterType="String" resultType="com.dasa.communication.vo.MainEventVo" >
+        select em_no, em_nm, em_push_id, bhf_code as om_code, em_device_type
+           from tb_empl_manage
+           where delete_at = 'N'
+           and em_push_id is not null 
+           and trim(em_push_id) != '' 
+           and em_no != 'superuser'
+           group by em_push_id, em_device_type
+    </select>
+    
+    <select id="eventDashList" parameterType="hashmap" resultType="com.dasa.communication.vo.MainEventVo" >
+		SELECT
+               a.me_innb,  
+		       me_sj, 
+		       me_allday_at, 
+		       schdul_bgnde, 
+		       schdul_endde,
+		       if(atchmnfl_innb is not null, 1, 0) as ai_cnt
+        FROM tb_main_event a
+             left outer join tb_main_event_target b
+                on a.me_innb = b.me_innb  and a.delete_at = 'N'
+             left outer join tb_str_manage c
+                on b.sm_code = c.sm_code and c.delete_at = 'N'
+        where 1=1
+        and a.delete_at = 'N'
+        and substring(schdul_endde, 1, 8) BETWEEN DATE_FORMAT(NOW(),'%Y%m%d') and DATE_ADD(DATE_FORMAT(NOW(),'%Y%m%d'), INTERVAL + 365 DAY)
+        <choose>
+	        <when test="auth_flag &lt;= 1">
+		        and ((b.om_code in (select om_code from tb_orgnzt_manage where cm_code = #{cm_code} and delete_at ='N') 
+		        		or c.om_code in (select om_code from tb_orgnzt_manage where cm_code = #{cm_code} and delete_at ='N') 
+		        		or (b.om_code is null and b.sm_code is null)) OR (me_holiday_at='Y')) 
+		    </when>
+		    <otherwise>
+		    	<if test="!om_code.equals('') ">
+		     		and ((b.om_code =#{om_code} or c.om_code = #{om_code} or (b.om_code is null and b.sm_code is null)) OR (me_holiday_at='Y'))
+		     	</if>
+		    </otherwise>
+		 </choose>
+        group by a.me_innb
+        order by schdul_bgnde, me_holiday_at desc, me_innb
+        limit 5
+    </select>
+
+</mapper>

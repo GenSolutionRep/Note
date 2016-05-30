@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="organization">	
+	<select id="getSQL_organizationList" resultType="string" parameterType="hashmap" >
+	    select fn_get_orgnzt_list
+			  (#{cm_code}, 
+			   #{om_code}, 
+			   'A'
+			  )
+	</select>
+
+	<select id="organizationList" resultType="com.vertexid.vo.OrganizationVo" parameterType="map" >
+		${isql_string}
+	</select>
+	
+	<select id="selectOrganizationList" parameterType="hashmap" resultType="com.vertexid.vo.OrganizationVo" >
+		SELECT 
+				OM_CODE      
+				,CM_CODE     
+				,OM_PARENT_NO
+				,OM_NM     
+				,OM_ORGNZT_SE
+				,(CASE 	WHEN OM_ORGNZT_SE='H' THEN '본사' 
+						WHEN OM_ORGNZT_SE='B' THEN '지점'
+						ELSE '팀'
+				 END) AS OM_ORGNZT_SE_NM 
+				,OM_SORT_ORDR
+				,OM_MEMO     
+				,USE_AT      
+				,DELETE_AT   
+				,REGIST_MAN  
+				,REGIST_DE   
+				,UPDT_MAN    
+				,UPDT_DE  
+		  FROM tb_orgnzt_manage A
+	      WHERE DELETE_AT ='N'
+	       AND cm_code = #{cm_code}
+	       AND OM_ORGNZT_SE = IF(#{om_code}='' or #{om_code} is null, '1', OM_ORGNZT_SE )
+		   AND (OM_CODE = IF(#{om_code}='' or #{om_code} is null, OM_CODE, #{om_code}) 
+		      	or OM_PARENT_NO = IF(#{om_code}='' or #{om_code} is null, OM_PARENT_NO, #{om_code})
+		      	)
+		  ORDER BY OM_ORGNZT_SE, OM_SORT_ORDR
+	</select>    
+	
+	<select id="selectOrganizationListByCp" parameterType="string" resultType="com.vertexid.vo.OrganizationVo" >
+		SELECT 
+				OM_CODE      
+				,CM_CODE     
+				,OM_PARENT_NO
+				,OM_NM       
+				,OM_ORGNZT_SE
+				,OM_SORT_ORDR
+				,OM_MEMO     
+				,USE_AT      
+				,DELETE_AT   
+				,REGIST_MAN  
+				,REGIST_DE   
+				,UPDT_MAN    
+				,UPDT_DE
+			FROM tb_orgnzt_manage A
+			WHERE OM_ORGNZT_SE = '1'
+			 AND CM_CODE = #{cm_code}
+			 AND USE_AT='Y'
+			 AND DELETE_AT='N'
+			ORDER BY OM_SORT_ORDR, OM_NM
+	</select>
+	
+	<select id="selectOrganizationListByBhf" parameterType="map" resultType="com.vertexid.vo.OrganizationVo" >
+		${isql_string}
+	</select>
+	  
+	<select id="selectOrganizationRow" parameterType="string" resultType="com.vertexid.vo.OrganizationVo" >
+	        SELECT 
+				OM_CODE      
+				,CM_CODE     
+				,OM_PARENT_NO
+				,OM_NM       
+				,OM_ORGNZT_SE
+				,OM_SORT_ORDR
+				,OM_MEMO     
+				,USE_AT      
+				,DELETE_AT   
+				,REGIST_MAN  
+				,REGIST_DE   
+				,UPDT_MAN    
+				,UPDT_DE
+				,(SELECT B.OM_PARENT_NO FROM TB_ORGNZT_MANAGE B WHERE B.OM_CODE = A.OM_PARENT_NO) AS UP_DEPTH_CODE
+				,om_zipcd
+				,om_adres
+				,om_dtadres
+				,om_etcadres
+				,om_la
+				,om_lo
+			FROM tb_orgnzt_manage A
+			WHERE OM_CODE = #{om_code}
+  	</select>
+  	
+  	<select id="getOrganizationParentInfo" parameterType="string" resultType="com.vertexid.vo.OrganizationVo" >
+		SELECT M_PARENT_NO,
+		        (SELECT M_NM FROM TB_MENU B WHERE B.M_NO=A.M_PARENT_NO) AS M_PARENT_NAME
+		  FROM tb_menu A
+		  WHERE M_NO = #{m_no}
+		  LIMIT 1
+  	</select>
+  	
+  	<select id="selectFirstTreeOrganization" resultType="string" >
+		SELECT m_no
+		  FROM tb_menu
+	     WHERE m_no != 1
+	       AND m_nm != 'HOME'
+           LIMIT 1
+	</select>
+	
+	<select id="selectOrganizationParentList" resultType="com.vertexid.vo.OrganizationVo" >
+	       SELECT M_NO, M_NM
+			FROM TB_MENU
+			WHERE M_NO &lt;&gt; 1
+			AND M_PARENT_NO IS NULL 
+			ORDER BY M_ORDER
+  	</select>
+  	
+  	<select id="selectOrganizationChildList" resultType="com.vertexid.vo.OrganizationVo" >
+	       SELECT m_no,
+				   m_nm
+			FROM tb_menu a
+			 WHERE  m_parent_no = #{m_no}
+			   and (select count(*) from tb_menu b where b.m_parent_no = a.m_no) > 0 
+			ORDER bY m_order
+  	</select>
+  	
+  	<select id="selectBranchList" resultType="com.vertexid.vo.OrganizationVo" >
+	       SELECT om_code,
+				   om_nm
+			FROM tb_orgnzt_manage
+		   WHERE  cm_code = #{cm_code}
+			 AND om_orgnzt_se='B'
+			 AND use_at ='Y'
+			 AND delete_at ='N'
+		ORDER BY om_sort_ordr
+  	</select>
+  	
+  	<select id="selectDepthList" resultType="com.vertexid.vo.OrganizationVo" >
+	       SELECT om_code,
+				   om_nm
+			FROM tb_orgnzt_manage
+		   WHERE cm_code = #{cm_code}
+		   <if test="om_orgnzt_se != 1">
+		     AND OM_PARENT_NO = #{om_code}
+		   </if>
+			 AND om_orgnzt_se=#{om_orgnzt_se}
+			 AND use_at ='Y'
+			 AND delete_at ='N'
+		ORDER BY om_sort_ordr
+  	</select>
+  	
+	<!-- 	
+	0 : 지점, 팀 목록 조회(ex:슈퍼)
+	1 : 지점, 팀 목록 조회(ex:관리자)
+	2 : 팀 목록 조회	  (ex:지점장)
+	3 : 내팀 조회		  (ex:팀장)
+	4 : 내팀 조회		  (ex:고정여사원)
+	5 : 내팀 조회 		  (ex:순회여사원)
+	-->
+  	<select id="selectAuthDepthList" resultType="com.vertexid.vo.OrganizationVo" >
+		<if test="auth_flag &lt; 2 or (om_orgnzt_se == 2 and auth_flag &lt; 3 ) "> 
+  		   SELECT '' AS om_code
+  		   		<choose>
+				<when  test="om_orgnzt_se == 1">
+  		        , '지점' om_nm
+  		        </when>
+  		   		<otherwise>
+  		        , '팀명' om_nm
+  		        </otherwise>
+  		        </choose>
+  		        , 0 om_sort_ordr
+  		    FROM DUAL
+  		    UNION ALL
+  		    </if>
+	       SELECT om_code
+				  , om_nm
+				  , om_sort_ordr
+			FROM tb_orgnzt_manage
+		   WHERE cm_code = #{cm_code}
+		   <!--AND OM_CODE != '00006'-->
+		   <choose>
+			<when test="om_orgnzt_se != 2 and auth_flag  &gt; 1  "> <!-- 지점만조회 -->
+			   AND OM_CODE = #{om_code}
+			</when>			
+			<when test="om_orgnzt_se != 1 and auth_flag &gt; 2  "> <!-- 내팀만조회 -->
+			   AND OM_CODE = #{tm_code}
+			</when>			
+			<when test="om_orgnzt_se != 1 and auth_flag &lt; 3  "> <!-- 팀목록 조회 -->
+			   AND OM_PARENT_NO = #{param_om_code}
+			</when>			
+
+		</choose>
+		   
+		   
+			 AND om_orgnzt_se=#{om_orgnzt_se}
+			 AND use_at ='Y'
+			 AND delete_at ='N'
+		ORDER BY om_sort_ordr
+  	</select>
+  	
+  	
+  	<update id="SP_SAVE_ORGNZ_TO_MENU" statementType="CALLABLE" parameterType="com.vertexid.vo.OrganizationVo">
+        {call SP_SAVE_ORGNZ_TO_MENU(
+            #{flag        , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_code     , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{cm_code     , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_parent_no, mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_nm       , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_orgnzt_se, mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_sort_ordr, mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_memo     , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{use_at      , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{delete_at   , mode=IN, jdbcType=VARCHAR, javaType=string}		  
+		  , #{regist_man  , mode=IN, jdbcType=VARCHAR, javaType=string}		  		  
+		  , #{om_zipcd    , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_adres    , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_dtadres  , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_etcadres , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_la       , mode=IN, jdbcType=VARCHAR, javaType=string}
+		  , #{om_lo       , mode=IN, jdbcType=VARCHAR, javaType=string} 
+		  , #{res_code    , mode=OUT, jdbcType=VARCHAR, javaType=string}
+		  , #{res_msg     , mode=OUT, jdbcType=VARCHAR, javaType=string}
+        )}
+    </update>
+    
+  	<update id="updateOrganization" parameterType="hashmap">
+        UPDATE
+            tb_orgnzt_manage
+        SET
+			om_parent_no = #{om_parent_no}
+			,om_nm        = #{om_nm}       
+			,om_orgnzt_se = #{om_orgnzt_se}
+			,om_sort_ordr = #{om_sort_ordr}
+			,om_memo      = #{om_memo}     
+			,use_at       = #{use_at}      
+			,updt_man     = #{updt_man}    
+			,updt_de      = NOW()   
+        WHERE
+            om_code = #{om_code}
+    </update>
+    
+    <update id="deleteOrganization" parameterType="string">
+  	    UPDATE tb_orgnzt_manage
+        SET           
+			DELETE_AT    = 'Y'
+			,UPDT_MAN    = #{updt_man}          
+			,UPDT_DE     = NOW()     
+		WHERE OM_CODE=#{om_code} 
+    </update>
+    
+    <insert id="insertOrganization" parameterType="hashmap">
+        INSERT INTO tb_orgnzt_manage
+       		(	om_code      
+				,cm_code     
+				,om_parent_no
+				,om_nm       
+				,om_orgnzt_se
+				,om_sort_ordr
+				,om_memo     
+				,use_at      
+				,delete_at   
+				,regist_man  
+				,regist_de   
+				,updt_man    
+				,updt_de     
+       		)
+       	VALUES
+       		(
+	       		(select RIGHT(CONCAT('0000', IFNULL(CAST(MAX(OM_CODE)+1 AS SIGNED), 1)), 5) from tb_orgnzt_manage)
+				,#{cm_code}     
+				,#{om_parent_no}
+				,#{om_nm}       
+				,#{om_orgnzt_se}
+				,#{om_sort_ordr}
+				,#{om_memo}     
+				,#{use_at}      
+				,#{delete_at}   
+				,#{regist_man}  
+				,NOW()   
+				,#{updt_man}    
+				,NOW()     
+       		)
+    </insert>
+	
+</mapper>
+                                    

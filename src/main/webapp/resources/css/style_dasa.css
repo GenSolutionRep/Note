@@ -1,0 +1,274 @@
+/* Reset */
+html, body {
+	width: 100%;
+	height: 100%
+}
+body {
+	overflow-y: scroll
+}
+body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, form, fieldset, p, button, input, label {
+	margin: 0;
+	padding: 0
+}
+body, h1, h2, h3, h4, input, button, select {
+	font-family: malgun, Malgun Gothic, '맑은 고딕', Dotum, '돋움'
+}
+body {
+	background-color: #fff;
+	text-align: left;
+	*word-break: break-all;
+	-ms-word-break: break-all
+}
+table {
+	text-align: center;
+}
+img, fieldset, iframe {
+	border: 0 none
+}
+li {
+	list-style: none
+}
+input, select, button {
+	vertical-align: middle
+}
+img {
+	vertical-align: middle
+}
+i, em, address {
+	font-style: normal
+}
+label, button {
+	cursor: pointer
+}
+button {
+	margin: 0;
+	padding: 0
+}
+a {
+	color: #fff;
+	text-decoration: none
+}
+a:hover {
+	color: #390;
+	text-decoration: none
+}
+button * {
+	position: relative
+}
+button img {
+	left: -3px;
+	*left: auto
+}
+html:first-child select {
+	height: 20px;
+	padding-right: 6px
+}
+option {
+	padding-right: 6px
+}
+hr {
+	display: none
+}
+legend {
+	*width: 0
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0
+}
+header, nav, content, footer {
+	display: block;
+}
+content, footer {
+	clear: both;
+}
+
+.hide {
+	display: none;
+}
+
+.clear {
+	clear: both;
+}
+
+.wrap {
+	position: relative;
+	height: 100%;
+	min-width: 1100px;
+}
+.container {
+	position: relative;
+	margin-left: 160px;
+}
+.content {
+	position: relative;
+	padding: 40px 30px;
+}
+
+span.handle {
+	position: absolute;
+	top: 28px;
+	left: 0;
+	width: 14px;
+	height: 62px;
+	text-indent: -9999px;
+	background-image: url('../img/aside-open.png');
+	display: block;
+	cursor: pointer;
+	background-position: 0 0;
+}
+
+aside {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 160px;
+	height: 100%;
+	background-color: #3f444c;
+	color: #fff;
+}
+
+aside nav {
+	font-size: 14px;
+	font-weight: bold;
+}
+aside nav ul {
+	list-style-type: none;
+}
+
+aside nav ul li a {
+	font-size: small;
+	color: #fff;
+	line-height: 28px;
+	text-decoration: none;
+}
+
+#aside.hide{
+/* 	display:none; */
+width: 0px;
+}
+
+.logo {
+	width: 160px;
+	height: 55px;
+	line-height: 48px;
+	border-bottom: 4px solid #ff3333;
+	text-align: center;
+	background-color: #fff;
+}
+.aside_tit {
+	display: none;
+}
+
+.aside_nav {
+	padding: 20px 0;
+	min-height: 99%;
+}
+.aside_nav > li {
+	text-indent: 17px;
+	border-bottom: 1px solid #31353B;
+	border-top: 1px solid #454B56;
+}
+.aside_nav > li > a {
+	position: relative;
+	display: block;
+	height: 40px;
+	line-height: 40px;
+	text-decoration: none;
+	color: #fff;
+	font-weight: bold;
+	font-size: 14px;
+	overflow: hidden;
+	background-color: #3F444C;
+}
+.aside_nav > li:hover > a {
+	background-color: #2C3138;
+}
+
+.aside_nav > li > a i {
+	position: absolute;
+	top: 15px;
+	right: 15px;
+	color: #b9bdca;
+}
+.aside_nav > li > ul {
+	border-top: 1px solid #2E2E2E;
+	background-color: #393E45;
+	padding: 10px 0;
+}
+.aside_nav > li > ul li {
+	text-indent: 28px;
+}
+.aside_nav > li > ul > li a {
+	height: 28px;
+	line-height: 28px;
+	font-weight: normal;
+}
+.aside_nav  li > ul > li:hover > a {
+	background-color: #69c4c9;
+	display: block;
+	color: #fff;
+}
+.selected > a {
+	color: #69c4c9;
+}
+
+header nav {
+	height: 55px;
+	border-bottom: 4px solid #ff3333;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+header nav ul {
+	list-style-type: none;
+	overflow: hidden;
+}
+
+header nav ul li {
+	float: left;
+	border-right: 1px solid #DEDEDE;
+	border-left: 1px solid #fff;
+	background-color: #fff;
+}
+
+header nav ul li:first-child {
+	border-left: 1px solid #DEDEDE;
+}
+
+header nav ul li:last-child {
+	float: right;
+	border-left: 1px solid #DEDEDE;
+	border-right: none;
+}
+
+header nav ul li:hover {
+	border-right: 1px solid #DC4F57;
+	border-left: 1px solid #FD7277;
+	background-color: #FF4949;
+}
+
+header nav ul li a {
+	line-height: 55px;
+	padding: 19px 20px;
+	text-decoration: none;
+	color: #828282;
+}
+header nav ul li a:hover {
+	color: #fff;
+}
+
+header nav ul li.on a {
+	color: #fff;
+}
+
+header nav ul li.on {
+	border-right: 1px solid #DC4F57;
+	border-left: 1px solid #FD7277;
+	background-color: #ff5a5a;
+}
+footer {
+	padding: 40px;
+	text-align: center;
+	border-top: 1px solid #ddd;
+}

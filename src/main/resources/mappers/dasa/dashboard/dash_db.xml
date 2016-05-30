@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dash">	
+
+	<select id="selectEmp" parameterType="map" resultType="com.dasa.dashboard.vo.DashVo" >
+	       select  
+	    		a.em_dty_code as c_code
+	    		, b.c_name
+	    		, count(*) as cnt
+		from tb_empl_manage a, tb_code b
+		where a.em_dty_code = b.c_code
+		 and a.cm_code = #{cm_code}
+		 and a.em_dty_code  != '0000000009'
+		<if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	</if>
+     	<if test="auth_flag &gt; 1  ">
+     		and a.team_code = #{team_code}
+     	</if>
+     	 and a.use_at = 'Y'
+		 group by em_dty_code
+		 order by a.em_dty_code  
+	</select>    
+	
+	<select id="selectFixAttdance" parameterType="map" resultType="com.dasa.dashboard.vo.DashVo" >
+	   select 
+         (select count(*)
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d')
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+     	 <if test="auth_flag &gt; 1  ">
+      		and a.team_code = #{team_code}
+      	 </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+         and a.em_dty_code = '0000000006'
+         and a.use_at = 'Y'  
+         ) as a_all
+         
+        ,(select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d')
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+     	 <if test="auth_flag &gt; 1  ">
+      		and a.team_code = #{team_code}
+      	 </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000006'
+           and dm_vcatn_at = 'N'
+           and b.dm_dt is not null and b.dm_lvffc_de is null
+           and a.use_at = 'Y'
+         ) as a_go
+        
+        ,(select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d')
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+     	 <if test="auth_flag &gt; 1  ">
+      		and a.team_code = #{team_code}
+      	 </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000006'
+           and dm_vcatn_at = 'N'
+           and b.dm_dt is not null
+           and b.dm_lvffc_de is not null
+           and a.use_at = 'Y'
+         ) as a_leave
+        
+        ,(select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d') 
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+     	 <if test="auth_flag &gt; 1  ">
+      		and a.team_code = #{team_code}
+      	 </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000006'
+           and b.dm_dt is not null
+           and b.dm_vcatn_at = 'Y'
+           and b.dm_vcatn_type != '0000000100'
+           and a.use_at = 'Y'
+         ) as a_vacation     
+         
+        , (select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d') 
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+     	 <if test="auth_flag &gt; 1  ">
+      		and a.team_code = #{team_code}
+      	 </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000006'
+           and b.dm_dt is not null
+           and b.dm_vcatn_at = 'Y'
+           and b.dm_vcatn_type = '0000000100'
+           and a.use_at = 'Y'
+         ) as a_education  
+         
+        ,(select count(*)
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and ( b.dm_dt = date_format(now(), '%Y%m%d')  or b.dm_dt is null)
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+	     <if test="auth_flag &gt; 1  ">
+    		and a.team_code = #{team_code}
+	     </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000006'
+           and b.dm_at_am_no is null
+           and (dm_vcatn_at is null or dm_vcatn_at = 'N')
+           and a.use_at = 'Y'
+          ) as a_yet   
+	</select>    
+	
+	<select id="selectRndAttdance" parameterType="map" resultType="com.dasa.dashboard.vo.DashVo" >
+	select 
+	    (select count(*)
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d')
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+	     <if test="auth_flag &gt; 1  ">
+    		and a.team_code = #{team_code}
+	     </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000007'
+           and a.use_at = 'Y'
+           ) as a_all
+         
+        ,(select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d')
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+	     <if test="auth_flag &gt; 1  ">
+    		and a.team_code = #{team_code}
+	     </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000007'
+           and dm_vcatn_at = 'N'
+           and b.dm_dt is not null and b.dm_lvffc_de is null
+           and a.use_at = 'Y'
+         ) as a_go
+        
+        ,(select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d')
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+	     <if test="auth_flag &gt; 1  ">
+    		and a.team_code = #{team_code}
+	     </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000007'
+           and dm_vcatn_at = 'N'
+           and b.dm_dt is not null
+           and b.dm_lvffc_de is not null
+           and a.use_at = 'Y'
+         ) as a_leave
+        
+        ,(select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d') 
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+	     </if>
+	     <if test="auth_flag &gt; 1  ">
+    		and a.team_code = #{team_code}
+	     </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000007'
+           and b.dm_dt is not null
+           and b.dm_vcatn_at = 'Y'
+           and b.dm_vcatn_type != '0000000100'
+           and a.use_at = 'Y'
+         ) as a_vacation     
+         
+        , (select count(*) 
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and b.dm_dt = date_format(now(), '%Y%m%d') 
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+	     <if test="auth_flag &gt; 1  ">
+    		and a.team_code = #{team_code}
+	     </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000007'
+           and b.dm_dt is not null
+           and b.dm_vcatn_at = 'Y'
+           and b.dm_vcatn_type = '0000000100'
+           and a.use_at = 'Y'
+         ) as a_education  
+         
+        ,(select count(*)
+         from tb_empl_manage a
+            left outer join tb_dclz_manage b on a.em_no = b.em_no and ( b.dm_dt = date_format(now(), '%Y%m%d')  or b.dm_dt is null)
+         where  1=1
+         and a.cm_code = #{cm_code}
+         <if test="!om_code.equals('') ">
+     		and a.bhf_code = #{om_code}
+     	 </if>
+	     <if test="auth_flag &gt; 1  ">
+    		and a.team_code = #{team_code}
+	     </if>
+	     <if test="auth_flag &gt;= 3">
+     		and a.em_no = #{login_no}
+     	 </if>
+           and a.em_dty_code = '0000000007'
+           and b.dm_at_am_no is null
+           and (dm_vcatn_at is null or dm_vcatn_at = 'N')
+           and a.use_at = 'Y'
+          ) as a_yet  
+  	</select>
+
+</mapper>

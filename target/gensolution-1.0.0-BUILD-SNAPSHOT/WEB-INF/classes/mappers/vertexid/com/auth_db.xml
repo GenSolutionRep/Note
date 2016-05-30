@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="auth">
+	
+	<!-- 권한그룹 권한 등록 -->
+	<insert id="authSave" parameterType="map">
+		INSERT INTO tb_menu_auth(
+			  ma_group_seq
+			, m_no
+			, ma_visible
+			, ma_insert
+			, ma_update
+			, ma_del
+			, ma_down
+			, ma_etc
+			, ma_in_id
+			, ma_in_date
+			, ma_up_id
+			, ma_up_date
+		)
+		VALUES(
+			  #{ma_group_seq}
+			, #{m_no}
+			, #{ma_visible}
+			, #{ma_insert}
+			, #{ma_update}
+			, #{ma_del}
+			, #{ma_down}
+			, #{ma_etc}
+			, #{login_id}
+			, NOW()
+			, #{login_id}
+			, NOW()
+		)
+		ON DUPLICATE KEY UPDATE     
+			  ma_visible   = #{ma_visible}
+			, ma_insert    = #{ma_insert}
+			, ma_update    = #{ma_update}
+			, ma_del       = #{ma_del}
+			, ma_down      = #{ma_down}
+			, ma_etc       = #{ma_etc}
+			, ma_up_id     = #{login_id}
+			, ma_up_date   = NOW()
+	</insert>
+	
+	<!-- 권한그룹 사원 모두삭제 -->
+	<delete id="authEmpDelete" parameterType="String" >
+		DELETE FROM tb_menu_auth_group_emp
+		WHERE ma_group_seq = #{ma_group_seq}
+	</delete>
+	<!-- 권한그룹 사원등록 -->
+	<insert id="authEmpSave" parameterType="map" >
+		INSERT INTO tb_menu_auth_group_emp(
+			  em_no
+			, ma_group_seq
+			, mae_in_id
+			, mae_in_date
+			, mae_up_id
+			, mae_up_date
+		)
+		VALUES(
+			  #{em_no}
+			, #{ma_group_seq}
+			, #{login_id}
+			, NOW()
+			, #{login_id}
+			, NOW()
+		)
+	</insert>
+	
+	
+	<!-- 해당 매뉴 권한조회 -->
+	<select id="thisMenuAuth" parameterType="map" resultType="com.vertexid.vo.AuthVo" >
+	    SELECT  m_no
+  			, ma_visible
+  			, ma_insert
+  			, ma_update
+  			, ma_del
+  			, ma_down
+  			, ma_etc 
+	    from tb_menu_auth_group_emp MAGE
+	    JOIN tb_menu_auth MA
+	    on MAGE.ma_group_seq = MA.ma_group_seq
+	    AND MA.m_no = #{m_no}
+	  where MAGE.em_no = #{login_no}
+	</select>
+	
+	<!-- 권한그룹 콤보박스 조회 -->
+	<select id="selectAuthGroupList" resultType="com.vertexid.vo.AuthGroupVo" >
+		select ma_group_seq,
+		       ma_group_name,
+		       ma_group_memo,
+		       ma_is_del,
+		       ma_in_date,
+		       ma_up_date,
+		       ma_in_id,
+		       ma_up_id
+		  from tb_menu_auth_group
+		 where ma_is_del = 'N'
+		 order by ma_in_date
+	</select>
+	
+	<!-- 권한그룹 상세,수정시 조회 -->
+	<select id="selectAuthGroupRow" parameterType="string" resultType="com.vertexid.vo.AuthGroupVo" >
+	    SELECT ma_group_seq	
+		      ,ma_group_name
+		      ,ma_group_memo	
+		      ,ma_is_del		
+		      ,ma_in_date		
+		      ,ma_up_date		
+		      ,ma_in_id		
+		      ,ma_up_id		
+		FROM tb_menu_auth_group 
+		WHERE ma_group_seq = #{ma_group_seq}
+	</select>
+	
+	<!-- 권한그룹 등록 -->
+	<insert id="insertAuthGroup" parameterType="com.vertexid.vo.AuthGroupVo">
+        INSERT INTO tb_menu_auth_group
+       		(	
+		       ma_group_name
+		      ,ma_group_memo	
+		      ,ma_is_del		
+		      ,ma_in_date		
+		      ,ma_up_date		
+		      ,ma_in_id		
+		      ,ma_up_id		
+       		)
+       	VALUES
+       		(
+				 #{ma_group_name}
+				,#{ma_group_memo}
+				,'N'    
+				,NOW()   
+				,NOW()   
+				,#{ma_in_id}     
+				,#{ma_up_id}    
+       		)
+    </insert>
+    
+    <!-- 권한그룹 수정 -->
+    <update id="updateAuthGroup" parameterType="com.vertexid.vo.AuthGroupVo">
+    	UPDATE tb_menu_auth_group
+    	SET  ma_group_name	 = #{ma_group_name}
+			,ma_group_memo	 = #{ma_group_memo}
+			,ma_is_del		 = #{ma_is_del}    
+			,ma_up_date		 = NOW()       
+			,ma_up_id	     = #{ma_up_id}  
+		WHERE    
+			 ma_group_seq	 = #{ma_group_seq} 
+    </update>
+    <!-- 권한그룹 삭제 -->
+    <delete id="deleteAuthGroup" parameterType="com.vertexid.vo.AuthGroupVo">
+    	UPDATE tb_menu_auth_group
+    	SET  ma_is_del		 = #{ma_is_del}    
+			,ma_up_date		 = NOW()       
+			,ma_up_id	     = #{ma_up_id}  
+		WHERE    
+			 ma_group_seq	 = #{ma_group_seq} 
+    </delete>
+    
+    <!-- 권한에대한 사원 목록 -->
+    <select id="selectAuthGroupEmpList" parameterType="hashmap" resultType="com.vertexid.vo.AuthGroupEmpVo" >
+	    SELECT   A.em_no		
+		        ,B.em_nm		
+		        ,C.c_name em_dty_nm
+		        ,A.ma_group_seq
+		        ,A.mae_in_date	
+		        ,A.mae_up_date	
+		        ,A.mae_in_id	
+		        ,A.mae_up_id	
+		FROM tb_menu_auth_group_emp  A 
+	    JOIN tb_empl_manage B    
+		  ON A.em_no = B.em_no 
+	    JOIN tb_code C
+	      ON B.em_dty_code = C.c_code		
+		WHERE B.use_at ='Y'
+		AND B.delete_at ='N'
+		AND A.ma_group_seq = #{ma_group_seq}
+		AND B.cm_code = #{cm_code}
+	</select>
+	
+    <!--사원 목록 -->
+    <select id="authEmpList" parameterType="hashmap" resultType="com.dasa.employee.vo.EmployeeVo">
+        <![CDATA[
+            select a.em_no,
+                   a.em_nm,
+                   b.c_name em_dty_nm
+              from tb_empl_manage a
+              join tb_code b
+               on  a.em_dty_code = b.c_code	
+             where a.em_no != 'superuser'
+               and a.em_no not in(select em_no from tb_menu_auth_group_emp)
+               and a.use_at = 'Y'
+               and a.delete_at = 'N'
+               and a.cm_code = #{cm_code}
+        ]]>
+        <if test="om_code!=null and !om_code.equals('')">
+               and a.bhf_code = #{om_code}
+        </if>
+        <if test="em_nm!=null and !em_nm.equals('')">
+               and a.em_nm like '%${em_nm}%'
+        </if>
+        order by a.em_dty_code
+    </select>
+    
+	<insert id="insertAuthGroupEmp" parameterType="com.vertexid.vo.AuthGroupEmpVo">
+		INSERT INTO 
+			tb_menu_auth_group_emp
+		(
+			 mae_seq		
+			,em_no		
+			,ma_group_seq
+			,mae_in_date	
+			,mae_up_date	
+			,mae_in_id	
+			,mae_up_id
+		)
+		values
+		(
+			(select IFNULL(max(MAE_SEQ),0)+1 from tb_menu_auth_group_emp) 			
+			,#{em_no}		
+			,#{ma_group_seq}
+			,NOW()	
+			,NOW()
+			,#{mae_in_id}	
+			,#{mae_up_id}
+		)					
+	</insert>
+	
+	<update id="updateAuthGroupEmp" parameterType="hashmap">
+    	UPDATE tb_menu_auth_group_emp
+    	SET 
+			em_no		  = #{em_no}	    
+			,ma_group_seq = #{ma_group_seq}
+<!-- 			,mae_is_del	  = #{mae_is_del}	 -->
+			,mae_up_date  =	NOW()	
+			,mae_up_id    = #{mae_up_id}	
+		WHERE 
+			mae_seq = #{mae_seq}
+    </update>
+    
+    <update id="deleteAuthGroupEmp" parameterType="hashmap">
+    	UPDATE tb_menu_auth_group_emp
+    	SET  mae_up_date  =	NOW()	
+			,mae_up_id    = #{mae_up_id}	
+		WHERE 
+			mae_seq = #{mae_seq}
+    </update>
+	
+	<select id="selectAuthList" parameterType="com.vertexid.vo.AuthVo" resultType="com.vertexid.vo.AuthVo" >
+	    SELECT M.m_no
+		    , M.m_parent_no    
+		    , M.m_nm
+		    , M.m_depth 
+		    , MA.ma_group_seq
+		    , MA.ma_visible
+		    , MA.ma_insert
+		    , MA.ma_update
+		    , MA.ma_del
+		    , MA.ma_down
+		    , MA.ma_etc
+		    from tb_menu M
+		    LEFT OUTER JOIN tb_menu_auth MA
+		    ON M.m_no = MA.m_no
+		    AND MA.ma_group_seq = #{ma_group_seq}		    
+		  where m_use_yn = 'Y'
+		  AND CASE WHEN M.m_common_yn='N' THEN  M.m_cm_code = #{m_cm_code}  ELSE 1=1 END
+		  ORDER BY m_parent_no, m_order
+	</select>    
+    
+    <delete id="deleteAuth" parameterType="string">
+  	    DELETE tb_menu_auth 
+		WHERE  ma_group_seq = #{ma_group_seq}  
+    </delete>
+    
+    
+	
+</mapper>
+                                    

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="menu">	
+	<select id="selectCompanyList" parameterType="string" resultType="com.vertexid.vo.CompanyVo" >
+	    SELECT		
+    		CM_CODE      
+			,CM_NM       
+			,CM_SORT_ORDR
+			,CM_MEMO     
+			,USE_AT      
+			,DELETE_AT   
+			,REGIST_MAN  
+			,REGIST_DE   
+			,UPDT_MAN    
+			,UPDT_DE     
+		FROM tb_cmpny_manage
+		WHERE DELETE_AT='N'
+		ORDER BY CM_SORT_ORDR
+	</select>    
+	<select id="selectCompanyRow" parameterType="string" resultType="com.vertexid.vo.CompanyVo" >
+	     SELECT		
+    		CM_CODE      
+			,CM_NM       
+			,CM_SORT_ORDR
+			,CM_MEMO     
+			,USE_AT      
+			,DELETE_AT   
+			,REGIST_MAN  
+			,REGIST_DE   
+			,UPDT_MAN    
+			,UPDT_DE  
+		FROM tb_cmpny_manage
+		WHERE CM_CODE=#{cm_code}
+  	</select>
+
+  	<update id="updateCompany" parameterType="hashmap">
+  	    UPDATE tb_cmpny_manage
+        SET
+			CM_NM    = #{cm_nm}          
+			,CM_SORT_ORDR   = #{cm_sort_ordr}         
+			,CM_MEMO        = #{cm_memo}              
+			,USE_AT      = #{use_at}            
+			,UPDT_MAN    = #{updt_man}          
+			,UPDT_DE     = NOW()
+		WHERE CM_CODE=#{cm_code} 
+    </update>
+    
+    <update id="deleteCompany" parameterType="string">
+  	    UPDATE tb_cmpny_manage
+        SET           
+			DELETE_AT    = 'Y'
+			,UPDT_MAN    = #{updt_man}          
+			,UPDT_DE     = NOW()     
+		WHERE CM_CODE=#{cm_code} 
+    </update>
+  	<insert id="insertCompany" parameterType="hashmap">
+		<selectKey resultType="String" keyProperty="cm_code_new" order="BEFORE" >
+		            select  RIGHT(CONCAT('00', CAST(IFNULL(MAX(cm_code), 0) AS SIGNED) + 1), 3)from tb_cmpny_manage
+		</selectKey>
+        
+	    INSERT INTO tb_cmpny_manage
+	    (
+		      cm_code      
+		    , cm_nm       
+		    , cm_sort_ordr
+		    , cm_memo     
+		    , use_at      
+		    , delete_at   
+		    , regist_man  
+		    , regist_de   
+		    , updt_man    
+		    , updt_de
+		)
+	    values 
+	    (
+	    	#{cm_code_new}
+	         , #{cm_nm}  
+	         , #{cm_sort_ordr} 
+	         , #{cm_memo}      
+	         , #{use_at}    
+	         , #{delete_at} 
+	         , #{regist_man}
+	         , NOW()
+	         , #{updt_man}  
+	         , NOW()
+		)
+    </insert>
+  
+</mapper>

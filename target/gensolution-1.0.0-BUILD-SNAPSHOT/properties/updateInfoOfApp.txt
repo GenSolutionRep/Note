@@ -1,0 +1,9 @@
+{
+    "and_ver":117,
+    "and_url":"http://www.dspams.co.kr/install/android/PAMS_117.apk",
+    "ios_ver":115,
+    "ios_url":"itms-services://?action=download-manifest&url=https://dl.dropboxusercontent.com/u/306791857/PAMS.plist",
+    "plist_url":"https://dl.dropboxusercontent.com/u/306791857/PAMS.plist",
+    "dasa_url":"http://www.dspams.co.kr",
+    "sp_url":"http://dspams.co.kr"
+}
